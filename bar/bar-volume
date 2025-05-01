@@ -37,6 +37,19 @@ noti_high_icon="audio-volume-high-symbolic"
 noti_over_icon="audio-volume-overamplified-symbolic"
 noti_muted_icon="audio-volume-muted-symbolic"
 
+
+# shellcheck source=/dev/null
+[[ -f "$HOME/.config/shell/theme.sh" ]] && . "$HOME/.config/shell/theme.sh"
+
+if [[ "${GLOBAL_THEME:-dark}" == "light" ]]; then
+    path="/usr/share/icons/Papirus-Light/24x24/panel"
+    noti_low_icon="${path}/audio-volume-low.svg"
+    noti_med_icon="${path}/audio-volume-medium.svg"
+    noti_high_icon="${path}/audio-volume-high.svg"
+    noti_over_icon="$noti_high_icon"
+    noti_muted_icon="${path}/audio-volume-muted.svg"
+fi
+
 if ! command -v wpctl >/dev/null; then
     err="'wpctl' not found"
     printf "%s: %s\n" "$PROG" "$err"

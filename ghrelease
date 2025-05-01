@@ -17,6 +17,7 @@ set -o pipefail
 
 PROG="${0##*/}"
 DEPS=(curl jq)
+JSON=0
 
 REPO_OWNER=
 REPO_NAME=
@@ -34,6 +35,7 @@ Checks github release by repo owner and name
 Options:
     -o  Repositoy owner
     -n  Repository name
+    -u  Show package URL
     -h  Print help
 EOF
 }
@@ -76,6 +78,12 @@ function _fetch_latest_version {
     jq -r "$REPO_TAG_VERSION" "$REPO_CACHE_FILE"
 }
 
+function _to_json {
+    REPO_CACHE_FILE="/tmp/${REPO_NAME}.json"
+    _fetch_git_data
+    echo "==${REPO_CACHE_FILE}=="
+}
+
 function main {
     if [[ "$#" -eq 0 ]]; then
         _usage
@@ -83,11 +91,13 @@ function main {
     fi
 
     _has -v "${DEPS[@]}"
-    while getopts 'o:n:h' flag; do
+    while getopts 'o:n:h:u:j' flag; do
         case "${flag}" in
         o) REPO_OWNER="${OPTARG}" ;;
         n) REPO_NAME="${OPTARG}" ;;
         h) _usage && exit 0 ;;
+        u) _repo_url && exit ;;
+        j) JSON=1 ;;
         *) _usage && exit 1 ;;
         esac
     done
@@ -98,6 +108,11 @@ function main {
 
     if [[ "$REPO_LATEST_VER" == "null" ]]; then
         _logerr "no release found"
+    fi
+
+    if [[ "$JSON" -gt 0 ]]; then
+        echo "${REPO_CACHE_FILE}"
+        exit 0
     fi
 
     echo "$REPO_LATEST_VER"

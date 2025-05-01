@@ -8,6 +8,7 @@
 BAT_CHARGE=$(cat /sys/class/power_supply/BAT0/capacity)
 BAT_STATUS=$(cat /sys/class/power_supply/BAT0/status)
 CRITICAL=10
+NOTIFIED="/tmp/battery_notified"
 
 if [[ "$BAT_STATUS" == "Full" ]]; then
     exit 0
@@ -32,14 +33,17 @@ else
 fi
 
 function _notifyme {
-    local args
-    local cmd=notify-send
-    declare -a args=(-a "Battery" "Battery" "Battery critical: ")
-    args+=(-r 999 --urgency=critical)
-    args+=(-i "battery-level-10-symbolic")
+    local mesg="${1:-Battery}"
+    local icon="${2:-}"
+    local urgency="${3:-normal}"
+    local args=(-a "Battery" "Battery" "${mesg}")
+    args+=(-r 999 --urgency="${urgency}")
+    args+=(-i "${icon}")
     args+=(-h int:value:"$BAT_CHARGE")
     args+=(-h string:x-canonical-private-synchronous:battery)
-    "$cmd" "${args[@]}"
+    notify-send "${args[@]}"
+
+    touch "$NOTIFIED"
 }
 
 function _is_charching {
@@ -134,12 +138,22 @@ function _render_unicodes {
 
 function main {
     # if not charging and low charge level critical notification
-    if ! _is_charching && [[ "$BAT_CHARGE" -le "$CRITICAL" ]]; then
-        _notifyme
+    if ! _is_charching &&
+        [[ "$BAT_CHARGE" -le "$CRITICAL" ]] &&
+        [[ ! -f "$NOTIFIED" ]]; then
+        _notifyme "Battery critical: " "battery-level-10-symbolic" "critical"
+    fi
+
+    # remove the file if it was notified, and the battery is not low or if the
+    # battery is not charging
+    if [[ -f "$NOTIFIED" ]] &&
+        ! _is_charching &&
+        [[ "$BAT_CHARGE" -gt "$CRITICAL" ]]; then
+        _notifyme "Battery: " "battery-level-70-symbolic" "normal"
+        rm -f "$NOTIFIED"
     fi
 
     _render_unicodes
-    # _display_icon
 }
 
 main

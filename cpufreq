@@ -160,6 +160,17 @@ function _mode_set {
     _notifyme "setting profile: <i><b>$mode</b></i>" "$(_get_notify_icon "$mode")"
 }
 
+function _tty_set {
+    local mode="${1:-}"
+    if ! _mode_check "$mode"; then
+        return 1
+    fi
+
+    sudo --askpass --reset-timestamp
+    echo "$mode" | sudo tee "${GOVERNOR[@]}" >/dev/null
+    printf "%s=> %s: %s%s\n" "$WHITE" "$PROG" "setting to $mode" "$RESET"
+}
+
 function _current {
     _logme "$CURRENT"
 }
@@ -251,6 +262,7 @@ function main {
 
     case "${1-}" in
     -s | *set) shift && _mode_set "$@" ;;
+    --tty) shift && _tty_set "$@" ;;
     -c | *current) _current ;;
     -m | *menu) _menu ;;
     -d | *dialog) _dialog ;;

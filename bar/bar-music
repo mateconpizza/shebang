@@ -17,8 +17,8 @@ if [[ "${DWM_BAR_FILLED:-1}" -eq 0 ]]; then
     # PLAYING=" "
     # PLAYING=""
 else
-    PLAYING=""
-    # PLAYING=""
+    # PLAYING=""
+    PLAYING=""
 fi
 
 function _logerr {
@@ -30,9 +30,10 @@ function _is_running {
     local cmd="$1"
 
     case "$cmd" in
-    "mpd") pgrep -f "$cmd" >/dev/null ;;
+    # "mpd") pgrep -f "$cmd" >/dev/null ;;
     "tidal-hifi") curl -s http://localhost:47836/current >/dev/null ;;
-    *) ;;
+    # "mpv") pgrep -f "$cmd" >/dev/null ;;
+    *) pgrep -f "$cmd" >/dev/null ;;
     esac
 }
 
@@ -53,6 +54,27 @@ function _mpd_status {
     # printf "%s %s - %s %s/%s\n" "$status" "$artist" "$track" "$pos" "$dur"
     #
     printf "%s %s - %s\n" "$status" "$artist" "$track"
+}
+
+function _mpv_status {
+    local deps=(jq socat mpv)
+    for cmd in "${deps[@]}"; do
+        if ! command -v "${cmd}" >/dev/null; then
+            _logerr "'${cmd}' not found"
+        fi
+    done
+
+    [[ ! -e "${MPVSOCKET:-}" ]] && return
+
+    local title
+    title=$(echo '{ "command": ["get_property", "media-title"] }' | socat - "$MPVSOCKET" 2>/dev/null | jq -r .data)
+    local retcode="$?"
+    [[ "${retcode}" -ne 0 ]] && return
+    local icon=""
+    if [[ "${title}" == "index.m3u8" ]]; then
+        title="YouTube Live"
+    fi
+    echo "${icon}  ${title}"
 }
 
 function _tidal_status {
@@ -87,6 +109,8 @@ function main {
         _tidal_status
     elif _is_running "mpd"; then
         _mpd_status
+    elif _is_running "mpv"; then
+        _mpv_status
     fi
 }
 

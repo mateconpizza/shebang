@@ -23,7 +23,7 @@ icon_empty="󰤿 "
 icon_low="󰥀 "
 icon_mid="󰥂 "
 icon_full="󰥈 "
-icon_unknow="󰥇 "
+icon_unknown="󰥇 "
 
 function is_power_on {
     if bluetoothctl show | grep -q "Powered: yes"; then
@@ -55,7 +55,7 @@ function _check_battery {
     local battery="$2"
     if [[ "$battery" -le 10 ]] && [[ "$battery" != "" ]]; then
         msg="$device_alias battery is low ${warn} ${icon_critical}${battery}%"
-        echo "$msg" | tee -a "$LOGGER"
+        echo "$(date +"%Y-%m-%d %H:%M:%S") - $msg" | tee -a "$LOGGER"
         _notifyme "$msg" "critical"
     fi
 }
@@ -91,7 +91,7 @@ function get_battery_icon {
     bat_charge="$1"
 
     if [[ -z "$bat_charge" ]]; then
-        echo "$icon_unknow"
+        echo "$icon_unknown"
         return
     fi
 

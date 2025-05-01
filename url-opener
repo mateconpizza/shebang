@@ -94,8 +94,12 @@ function main {
     _has -v setsid
     _cleanup
 
+    domain_with_path="${1#*://}"
+    domain="${domain_with_path%%/*}"
+
     case "$1" in
     *png | *jpg | *jpe | *jpeg | *preview.redd.it*)
+        _notifyme "$domain" "image"
         _has -v nsxiv
         curl -sL "$1" >"$DIR/$(echo "$1" | sed "s/.*\///;s/%20/ /g")" && nsxiv -a "$DIR/$(echo "$1" | sed "s/.*\///;s/%20/ /g")" >/dev/null 2>&1 &
         ;;
@@ -104,6 +108,7 @@ function main {
         curl -sL "$1" >"$DIR/$(echo "$1" | sed "s/.*\///;s/%20/ /g")" && zathura "$DIR/$(echo "$1" | sed "s/.*\///;s/%20/ /g")" >/dev/null 2>&1 &
         ;;
     *gifv* | *gif | *mkv | *webm | *mp4 | *odysee.com*)
+        _notifyme "$domain" "video"
         _has -v mpv
         setsid -f mpv --really-quiet --loop "$1" >/dev/null 2>&1
         ;;
@@ -116,6 +121,7 @@ function main {
         setsid -f ytmpv "$1"
         ;;
     *github.com*)
+        _notifyme "$domain" "github"
         setsid -f xdg-open "$1"
         ;;
     *) _choose_action "$1" ;;

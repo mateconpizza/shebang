@@ -8,7 +8,7 @@
 WARN="🔴"
 
 function is_online {
-    if ! ping -q -c 1 "www.linux.org" >/dev/null; then
+    if ! ping -4 -q -c 1 "www.linux.org" >/dev/null; then
         return 1
     fi
 

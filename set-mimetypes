@@ -99,6 +99,8 @@ DEFAULTS_APPS["font/sfnt"]="fonts.desktop"
 DEFAULTS_APPS["application/x-font-ttf"]="fonts.desktop"
 DEFAULTS_APPS["application/x-font-otf"]="fonts.desktop"
 DEFAULTS_APPS["application/font-woff"]="fonts.desktop"
+# books
+DEFAULTS_APPS["application/epub+zip"]="books.desktop"
 
 function err_exit {
     printf "%s: %s\n" "$PROG" "$*" >&2
