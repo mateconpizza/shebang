@@ -3,18 +3,13 @@
 # Script for displaying memory usage in dwm bar.
 #
 # Output: [icon 1.9Gi 25%]
-
 #          
-if [[ "${DWM_BAR_FILLED:-1}" -eq 0 ]]; then
-    ICON=" "
-else
-    ICON=" "
-fi
 
-monitors=$(xrandr --query | grep -w 'connected' | awk '{print $1;}' | wc -l)
-if [[ "$monitors" -eq 1 ]]; then
-    exit
-fi
+(($(xrandr | grep -c '\bconnected\b') == 1)) && exit
+
+ICON="MEM"
+((DWM_UNICODE)) && { ((DWM_BAR_FILLED)) && ICON=" " || ICON=" "; }
+((DWM_COLOR)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
 
 # The bash shell arithmetic expression ((...)) can't handle floating point.
 [[ -z "$(which bc)" ]] && echo "bc command not found." && exit 1

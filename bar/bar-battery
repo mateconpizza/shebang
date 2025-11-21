@@ -9,27 +9,26 @@ BAT_CHARGE=$(cat /sys/class/power_supply/BAT0/capacity)
 BAT_STATUS=$(cat /sys/class/power_supply/BAT0/status)
 CRITICAL=10
 NOTIFIED="/tmp/battery_notified"
-
-if [[ "$BAT_STATUS" == "Full" ]]; then
-    exit 0
-fi
+[[ "$BAT_STATUS" == "Full" ]] && exit 0
 
 # notification icons
 warn="🔴"
-if [[ "${DWM_BAR_FILLED:-1}" -eq 0 ]]; then
-    icon_critical=" "
-    icon_empty=" "
-    icon_low=" "
-    icon_mid=" "
-    icon_full=" "
-    icon_char=""
-else
-    icon_critical="󰂎"
-    icon_empty="󰁺"
-    icon_low="󰁼"
-    icon_mid="󰁿"
-    icon_full="󰁹"
-    icon_char=""
+if ((DWM_UNICODE)); then
+    if ((DWM_BAR_FILLED)); then
+        icon_critical=" "
+        icon_empty=" "
+        icon_low=" "
+        icon_mid=" "
+        icon_full=" "
+        icon_char=""
+    else
+        icon_critical="󰂎"
+        icon_empty="󰁺"
+        icon_low="󰁼"
+        icon_mid="󰁿"
+        icon_full="󰁹"
+        icon_char=""
+    fi
 fi
 
 function _notifyme {
@@ -115,15 +114,27 @@ function _get_icon {
     else
         icon="$icon_full"
     fi
+
     echo "$icon"
 }
 
 function _display_charging_bar {
-    printf "%b %b %s%%" "$(_get_charging_bar)" "$icon_char" "$BAT_CHARGE"
+    local ICON="CHAR"
+    if ((DWM_UNICODE)); then
+        ICON="$(_get_charging_bar)"
+        ((DWM_COLOR)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
+        printf "%b %b %s%%" "${ICON}" "$icon_char" "$BAT_CHARGE"
+    fi
+
+    ((DWM_COLOR)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
+    printf "%b%b %s%%" "${ICON}" "$icon_char" "$BAT_CHARGE"
 }
 
 function _display_icon {
-    printf "%b%s%%" "$(_get_icon)" " $BAT_CHARGE"
+    local ICON="BAT"
+    ((DWM_UNICODE)) && ICON=$(_get_icon)
+    ((DWM_COLOR)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
+    printf "%s %d%%" "${ICON}" "${BAT_CHARGE}"
 }
 
 function _render_unicodes {

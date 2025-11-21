@@ -8,18 +8,12 @@
 PROG=$(basename "$0")
 TARGET="k10temp-pci-00c3"
 WARN_ICON="🔥"
-# MIN_TEMP=50
+WARN_TEMP=75
 MAX_TEMP=95
 NOTIFYID=888
 WARN_NOTIFIED="/tmp/${PROG}-high"
 
-if [[ "${DWM_BAR_FILLED:-1}" -eq 0 ]]; then
-    icon_cold=""
-    icon_low=""
-    icon_mid=""
-    icon_high=""
-    icon_extreme=""
-else
+if ((DWM_UNICODE)); then
     icon_cold=""
     icon_low=""
     icon_mid=""
@@ -36,48 +30,55 @@ function _notify {
     notify-send "${notify_args[@]}" "$PROG" "$msg"
 }
 
-function _get_icon {
-    local temp="$1"
-    local icon
-    if [[ "${temp}" -ge 20 && "${temp}" -le 40 ]]; then
-        icon="$icon_cold"
-    elif [[ "${temp}" -ge 41 && "${temp}" -le 50 ]]; then
-        icon="$icon_low"
-    elif [[ "${temp}" -ge 51 && "${temp}" -le 60 ]]; then
-        icon="$icon_mid"
-    elif [[ "${temp}" -ge 61 && "${temp}" -le 70 ]]; then
-        icon="$icon_high"
-    elif [[ "${temp}" -ge 71 && "${temp}" -le 79 ]]; then
-        icon="$icon_extreme"
-    else
-        icon="${WARN_ICON}"
-    fi
-
-    echo "${icon}"
+_get_icon() {
+    local temp=$1
+    case $temp in
+    2[0-9] | 3[0-9]) echo "$icon_cold" ;; # 20–39
+    4[0-9]) echo "$icon_low" ;;           # 40–49
+    5[0-9]) echo "$icon_mid" ;;           # 50–59
+    6[0-9]) echo "$icon_high" ;;          # 60–69
+    7[0-8]) echo "$icon_extreme" ;;       # 70–78
+    *) echo "$WARN_ICON" ;;               # >=79 or <20
+    esac
 }
 
 function _cpu_tempcore {
-    local temp_str temp_int icon
-    temp_str=$(sensors "${TARGET}" | grep 'Tctl' | awk '{print $2}' | sed s/+//)
-    temp_int=${temp_str%.*}
-    icon=$(_get_icon "${temp_int}")
+    local temp_str temp_int ICON
+    temp_str=$(sensors "$TARGET" | awk '/Tctl/ {gsub(/\+/, "", $2); print $2}')
+    temp_int=${temp_str%.*} # strip decimal
 
     # local monitors
     # monitors=$(xrandr --query | grep -w 'connected' | awk '{print $1;}' | wc -l)
-    # [[ "$temp_int" -le "$MIN_TEMP" && "$monitors" -eq 1 ]] && return
+    # [[ "$temp_int" -le "$MIN_TEMP" && "$monitors" -eq 1 ]] && exit
 
-    if [[ "$temp_int" -ge "$MAX_TEMP" ]]; then
-        _notify "${icon}${temp_str} is too high"
-        if [[ ! -e "$WARN_NOTIFIED" ]]; then
-            touch "$WARN_NOTIFIED"
-        fi
+    ICON="TEMP"
+    ((DWM_UNICODE)) && ICON=$(_get_icon "$temp_int")
+
+    # --- high temperature warning ---
+    if ((temp_int >= MAX_TEMP)); then
+        _notify "${temp_str} is too high"
+        : >"$WARN_NOTIFIED" # create the file safely
     fi
 
     printf "%s" "${SEP1:-}"
-    printf "%s %s\n" "$icon" "$temp_str"
+
+    # --- display formatting ---
+    if ((temp_int >= "${WARN_TEMP}")); then
+        # WARNING COLOR
+        printf "%s%s%s %s\n" \
+            "${DWM_BAR_WARNING:-}" \
+            "$ICON" \
+            "${DWM_BAR_END:-}" \
+            "$temp_str"
+    else
+        ((DWM_COLOR)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
+        printf "%s %s\n" "$ICON" "$temp_str"
+    fi
+
     printf "%s" "${SEP2:-}"
 
-    if [[ -e "$WARN_NOTIFIED" ]] && [[ "$temp_int" -lt "$MAX_TEMP" ]]; then
+    # --- close warning if temp is back to normal ---
+    if ((temp_int < MAX_TEMP)) && [[ -e "$WARN_NOTIFIED" ]]; then
         dunstctl close "$NOTIFYID"
         rm "$WARN_NOTIFIED"
     fi

@@ -15,10 +15,12 @@ fi
 status=$($CMD status)
 [[ -z "$status" ]] && exit
 
-if [[ "${DWM_BAR_FILLED:-1}" -eq 0 ]]; then
-    ICON=""
-else
-    ICON=""
-fi
+ICON="POM"
+((DWM_UNICODE)) && { ((DWM_BAR_FILLED)) && ICON="" || ICON=""; }
+((DWM_COLOR)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
 
-echo "$ICON $($CMD status)"
+printf "%s%s %s%s" \
+    "${SEP1:-}" \
+    "${ICON}" \
+    "${status}" \
+    "${SEP2:-}"

@@ -5,7 +5,7 @@
 # Output: [ICON 55%]
 
 PROG=$(basename "$0")
-ICON_BAR=""
+ICON_BAR="VOL"
 ICON_NOTIFY=""
 
 case "${BLOCK_BUTTON:-}" in
@@ -18,16 +18,17 @@ case "${BLOCK_BUTTON:-}" in
 esac
 
 # bar icons
-if [[ "${DWM_BAR_FILLED:-1}" -eq 0 ]]; then
-    low_icon=""
-    mid_icon=""
-    high_icon=""
-    muted_icon=""
-else
-    low_icon=""
-    mid_icon=""
-    high_icon=""
-    muted_icon=""
+if ((DWM_UNICODE)); then
+    if ((DWM_BAR_FILLED)); then
+        ICON_SET=("" "" "" "")
+    else
+        ICON_SET=("" "" "" "")
+    fi
+
+    low_icon="${ICON_SET[0]}"
+    mid_icon="${ICON_SET[1]}"
+    high_icon="${ICON_SET[2]}"
+    muted_icon="${ICON_SET[3]}"
 fi
 
 # notification icons
@@ -36,7 +37,6 @@ noti_med_icon="audio-volume-medium-symbolic"
 noti_high_icon="audio-volume-high-symbolic"
 noti_over_icon="audio-volume-overamplified-symbolic"
 noti_muted_icon="audio-volume-muted-symbolic"
-
 
 # shellcheck source=/dev/null
 [[ -f "$HOME/.config/shell/theme.sh" ]] && . "$HOME/.config/shell/theme.sh"
@@ -90,7 +90,7 @@ function load_icons {
     fi
 }
 
-function send_notification {
+function _notify {
     local icon="$1"
     local cmd=notify-send
     local appname="Volume"
@@ -103,10 +103,11 @@ function send_notification {
 }
 
 function main {
-    load_icons
+    ((DWM_UNICODE)) && load_icons
     [[ -z "$VOL" ]] && VOL="?"
+    ((DWM_COLOR)) && ICON_BAR="${DWM_BAR_FG:-}${ICON_BAR}${DWM_BAR_END:-}"
     printf "%s%s  %s%%%s\n" "${SEP1:-}" "$ICON_BAR" "$VOL" "${SEP2:-}"
-    send_notification "$ICON_NOTIFY"
+    _notify "$ICON_NOTIFY"
 }
 
 main

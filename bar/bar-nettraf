@@ -5,25 +5,23 @@
 # Output: [ICON_DOWN  1.6MB ICON_UP  24KB]
 #                      
 
-monitors=$(xrandr --query | grep -w 'connected' | awk '{print $1;}' | wc -l)
-if [[ "$monitors" -eq 1 ]]; then
-    exit
+(($(xrandr | grep -c '\bconnected\b') == 1)) && exit
+
+icon_up="UP"
+icon_down="DOWN"
+if ((DWM_UNICODE)); then
+    if ((DWM_BAR_FILLED)); then
+        icon_up=""
+        icon_down=""
+    else
+        icon_up=""
+        icon_down=""
+    fi
 fi
 
-case "${BLOCK_BUTTON:-}" in
-1) setsid -f "${TERMINAL:-st}" -e bmon ;;
-3) notify-send "🌐 Network traffic module" "🔻: Traffic received
-🔺: Traffic transmitted" ;;
-6) setsid -f "${TERMINAL:-st}" -e "${EDITOR:-nvim}" "$0" ;;
-*) ;;
-esac
-
-if [[ "${DWM_BAR_FILLED:-1}" -eq 0 ]]; then
-    icon_up=""
-    icon_down=""
-else
-    icon_up=""
-    icon_down=""
+if ((DWM_COLOR && !DWM_UNICODE)); then
+    icon_up="${DWM_BAR_FG:-}${icon_up}${DWM_BAR_END:-}"
+    icon_down="${DWM_BAR_FG:-}${icon_down}${DWM_BAR_END:-}"
 fi
 
 function update {

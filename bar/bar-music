@@ -7,19 +7,10 @@
 
 set -euo pipefail
 
-# monitors=$(xrandr --query | grep -w 'connected' | awk '{print $1;}' | wc -l)
-# if [[ "$monitors" -eq 1 ]]; then
-#     exit
-# fi
+# (($(xrandr | grep -c '\bconnected\b') == 1)) && exit
 
-if [[ "${DWM_BAR_FILLED:-1}" -eq 0 ]]; then
-    PLAYING=""
-    # PLAYING=" "
-    # PLAYING=""
-else
-    # PLAYING=""
-    PLAYING=""
-fi
+PLAYING=""
+((DWM_UNICODE)) && { ((DWM_BAR_FILLED)) && PLAYING="" || PLAYING=""; }
 
 function _logerr {
     printf "%s: %s\n" "${0##*/}" "$*" >&2
@@ -96,6 +87,8 @@ function _tidal_status {
 
     track=$(echo "$json" | jq -r '.title')
     artist=$(echo "$json" | jq -r '.artist')
+    artist="${artist^^}"
+    ((DWM_COLOR)) && artist="${DWM_BAR_FG:-}${artist}${DWM_BAR_END:-}"
 
     # pos=$(echo "$json" | jq -r '.current')
     # dur=$(echo "$json" | jq -r '.duration')

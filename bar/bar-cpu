@@ -3,59 +3,20 @@
 # Script for displaying CPU usage
 #
 # Output: [ICON 10%]
-if [[ "${DWM_BAR_FILLED:-1}" -eq 0 ]]; then
-    ICON="" # "" "" ""
-else
-    ICON="" # "" "" ""
-fi
+#   
 
-case "${BLOCK_BUTTON:-}" in
-1) notify-send "🖥 CPU hogs" "$(ps axch -o cmd,%cpu | awk '{cmd[$1]+=$2} END {for (i in cmd) print i, cmd[i]}' | sort -nrk2 | head)\\n(100% per core)" ;;
-2) setsid -f "${TERMINAL:-st}" -e htop ;;
-3) notify-send "🖥 CPU module " "\- Shows CPU temperature.
-- Click to show intensive processes.
-- Middle click to open htop." ;;
-6) setsid -f "$TERMINAL" -e "${EDITOR:-nvim}" "$0" ;;
-*) ;;
-esac
+ICON="CPU"
+((DWM_UNICODE)) && { ((DWM_BAR_FILLED)) && ICON=" " || ICON=" "; }
+((DWM_COLOR && !DWM_UNICODE)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
 
-function dwm_cpu_old {
-    cpu=$(top -bn1 | grep Cpu | awk '{print $2}')
-    printf "%s" "${SEP1:-}"
-    printf "%s  %s%%" "$ICON" "$cpu"
-    printf "%s\n" "${SEP2:-}"
-}
+CPU=$(top -bn1 | grep Cpu | awk '{print $2}')
+digits=${#CPU}
+space=" "
+((digits == 1)) && space="  "
 
-function dwm_cpu_color {
-    local cyan_color, reset_color
-    cyan_color="^c#4abaaf^"
-    reset_color="^d^"
-    cpu=$(top -bn1 | grep Cpu | awk '{print $2}')
-    printf "%s" "$SEP1"
-    printf "%s%s%s  %s%%" "$cyan_color" "$ICON" "$reset_color" "$cpu"
-    printf "%s\n" "$SEP2"
-}
-
-function cpu_no_color {
-    read -r cpu a b c previdle rest </proc/stat
-    prevtotal=$((a + b + c + previdle))
-    sleep 0.5
-    read -r cpu a b c idle rest </proc/stat
-    total=$((a + b + c + idle))
-    cpu=$((100 * ((total - prevtotal) - (idle - previdle)) / (total - prevtotal)))
-    echo  "$cpu"%
-}
-
-function dwm_cpu {
-    read -r cpu a b c previdle rest </proc/stat
-    prevtotal=$((a + b + c + previdle))
-    sleep 0.5
-    read -r cpu a b c idle rest </proc/stat
-    total=$((a + b + c + idle))
-    cpu=$((100 * ((total - prevtotal) - (idle - previdle)) / (total - prevtotal)))
-    printf "%s" "$SEP1"
-    printf "%s  %s%%\n" "$ICON" "$cpu"
-    printf "%s" "$SEP2"
-}
-
-dwm_cpu_old
+printf "%s%s%s%s%%%s\n" \
+    "${SEP1:-}" \
+    "${ICON}" \
+    "${space}" \
+    "$CPU" \
+    "${SEP2:-}"

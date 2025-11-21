@@ -4,9 +4,7 @@
 #
 # Output: [ICON 16:12]
 
-if [[ "${DWM_BAR_FILLED:-1}" -eq 0 ]]; then
-    icon=" "
-else
-    icon=" "
-fi
-printf "%s%s %s%s\n" "${SEP1:-}" "$icon" "$(date "+%H:%M")" "${SEP2:-}"
+ICON="TIME"
+((DWM_UNICODE)) && { ((DWM_BAR_FILLED)) && ICON=" " || ICON=" "; }
+((DWM_COLOR)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
+printf "%s%s %s%s\n" "${SEP1:-}" "$ICON" "$(date "+%H:%M")" "${SEP2:-}"

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 # ╺┳┓┏━┓╺┳╸┏━╸
 #  ┃┃┣━┫ ┃ ┣╸
@@ -8,17 +8,13 @@
 # output: "[ICON Fri, DD MMM]"
 #        󰭦 󰭨 
 
-if [ "${DWM_BAR_FILLED:-1}" -eq 0 ]; then
-    ICON=" "
-else
-    ICON=" "
-fi
-monitors=$(xrandr --query | grep -w 'connected' | awk '{print $1;}' | wc -l)
-if [ "$monitors" -eq 1 ]; then
-    exit
-    # d=$(date "+%d %b")
-else
-    d=$(date "+%a %d %b")
-fi
+(($(xrandr | grep -c '\bconnected\b') == 1)) && exit
+ICON="DATE"
+((DWM_UNICODE)) && { ((DWM_BAR_FILLED)) && ICON=" " || ICON=" "; }
+((DWM_COLOR)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
 
-printf "%s%s %s%s\n" "${SEP:-}" "$ICON" "$d" "${SEP:-}"
+printf "%s%s %s%s\n" \
+    "${SEP:-}" \
+    "$ICON" \
+    "$(date "+%a %d %b")" \
+    "${SEP:-}"
