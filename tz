@@ -4,12 +4,14 @@
 #  ┃ ┏━┛
 #  ╹ ┗━╸
 # load tmux sessions
+# deps: <tmux> <fzf> <tmuxp>
 
 set -eou pipefail
 
 PROG="${0##*/}"
 DEPS=(tmux fzf tmuxp)
 ROOT="${XDG_CONFIG_HOME:-$HOME/.config}/tmuxp"
+RUNNING=0
 
 for cmd in "${DEPS[@]}"; do
     if ! command -v "$cmd" >/dev/null 2>&1; then
@@ -24,14 +26,47 @@ GREEN=$(tput setaf 2)
 MAGENTA=$(tput setaf 5)
 RED=$(tput setaf 1)
 YELLOW=$(tput setaf 3)
+BOLD=$(tput bold)
 RESET="$(tput sgr0)"
+
+function _usage {
+    cat <<-EOF
+${BOLD}${PROG}${RESET} - load tmux sessions
+
+${BOLD}Usage:${RESET}
+    ${PROG} [OPTIONS]
+
+${BOLD}Options:${RESET}
+    -r,     show running sessions
+    -h,     show this help
+
+${BOLD}Examples:${RESET}
+    ${PROG} -r
+    ${PROG} <session name>
+EOF
+
+    exit 1
+}
+
+while getopts "hr" opt; do
+    case "${opt}" in
+    r)
+        RUNNING=1
+        shift
+        ;;
+    h | ?)
+        _usage
+        ;;
+    *) ;;
+    esac
+done
 
 declare -A ICONS
 ICONS[edit]="${CYAN}${RESET} edit"
 ICONS["load-detach"]="${MAGENTA}${RESET} load-detach"
 ICONS["load-switch"]="${BLUE}${RESET} load-switch"
-ICONS["load-attach"]="${YELLOW}${RESET} load-attach"
-ICONS[attach]="${GREEN}${RESET} attach"
+ICONS["load-attach"]="${YELLOW}${RESET} load-attach"
+ICONS[attach]="${GREEN}${RESET} attach"
 ICONS[switch]="${BLUE}${RESET} switch"
 ICONS[running]=""
 ICONS[prompt]=""
@@ -44,19 +79,28 @@ FZFARGS+=(--border-label=" tmuxp " --border)
 FZFARGS+=(--ansi)
 
 declare -a ACTIONS
-
+declare -a FILTERED_FILENAMES=()
 mapfile -t FILENAMES < <(find "$ROOT/" -type f -name "*.yaml" -exec basename {} .yaml \;)
 mapfile -t sessions_running < <(tmux list-sessions 2>/dev/null | awk -F':' '{print $1}')
 for i in "${!FILENAMES[@]}"; do
     if [[ " ${sessions_running[*]} " =~ ${FILENAMES[i]} ]]; then
         icon_running="${YELLOW}${ICONS[running]}${RESET}"
         FILENAMES[i]="${FILENAMES[i]} ${icon_running}"
+        FILTERED_FILENAMES[i]="${FILENAMES[i]}"
     fi
 done
 
+if ((RUNNING)); then
+    if [[ "${#FILTERED_FILENAMES[@]}" -gt 0 ]]; then
+        FILENAMES=("${FILTERED_FILENAMES[@]}")
+    fi
+fi
+
 filename=$(printf "%s\n" "${FILENAMES[@]}" | fzf "${FZFARGS[@]}" \
     --prompt="${ICONS[prompt]} session> " \
+    --query="${1:-}" \
     --header="${YELLOW}${ICONS[running]} running session${RESET}" --header-label-pos=bottom)
+
 [[ -z "$filename" ]] && exit 1
 [[ "$filename" == *"${ICONS[running]}"* ]] && ACTIONS+=("${ICONS["kill"]}")
 filename="${filename/ ${ICONS[running]}/}"
@@ -77,8 +121,8 @@ if tmux has-session -t "$session_name" 2>/dev/null && [[ -z "${TMUX:-}" ]]; then
 elif [[ -n "${TMUX:-}" ]] && tmux has-session -t "$session_name" 2>/dev/null; then
     ACTIONS+=("${ICONS[switch]}")
 elif [[ -z "${TMUX:-}" ]]; then
-    ACTIONS+=("${ICONS["load-attach"]}")
     ACTIONS+=("${ICONS["load-detach"]}")
+    ACTIONS+=("${ICONS["load-attach"]}")
 fi
 
 action=$(printf "%s\n" "${ACTIONS[@]}" | fzf "${FZFARGS[@]}" --prompt="${ICONS[prompt]} ${session_name}> ")
