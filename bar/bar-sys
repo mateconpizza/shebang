@@ -8,11 +8,22 @@
 WARN="🔴"
 
 function is_online {
-    if ! ping -4 -q -c 1 "www.linux.org" >/dev/null; then
-        return 1
-    fi
+    # check connectivity level (full, limited, portal, none)
+    local connectivity
+    connectivity=$(nmcli -t -f CONNECTIVITY general)
+    [[ "$connectivity" == "full" ]]
+}
 
-    return 0
+function is_pihole_online {
+    local PIHOLE_IP="192.168.1.160"
+    # dig @${PIHOLE_IP} pi.hole +short +time=1 +tries=1 >/dev/null 2>&1
+    ping -c1 -W1 "${PIHOLE_IP}" >/dev/null 2>&1
+}
+
+function get_pihole_status {
+    if ! is_pihole_online; then
+        echo "${WARN} "
+    fi
 }
 
 function get_interface {
@@ -168,27 +179,6 @@ function is_running {
     fi
 }
 
-function is_running_new {
-    local cmd="$1"
-    local enable="$2"
-    local disable="$3"
-
-    # Usar pgrep -f y luego filtrar solo el PID del proceso principal
-    pid=$(pgrep -f -o "$cmd")
-
-    if [[ -z "$pid" ]]; then
-        printf "%s" "$disable"
-    else
-        # Si el PID es válido, verificamos que no sea un subproceso
-        # Puedes ajustar esta parte para que valid más específicamente según lo que necesitas
-        if ps -p "$pid" -o comm= | grep -E "^$cmd" >/dev/null; then
-            printf "%s" "$enable"
-        else
-            printf "%s" "$disable"
-        fi
-    fi
-}
-
 function main {
     declare -A programs
     programs["transmission-daemon"]=""
@@ -204,23 +194,26 @@ function main {
     programs["telegram"]=""
     programs["share-files"]=""
     programs["tor"]=""
+    programs["minidlnad"]="" # "󰩁"
     # programs["goairdrop"]=""
     # programs["obs"]=""
     # programs["tidal-hifi"]=""
     # programs["ytlocal"]=""
     # programs["xbps-install"]=""
 
-    mapfile -t icons < <(get_interface)
+    mapfile -t icons < <(get_pihole_status)
+    icons+=("$(get_interface)")
     icons+=("$(is_microphone_on)")
     icons+=("$(is_bluetooth_on)")
     icons+=("$(is_cpu_perform)")
+    # icons+=("$(get_pihole_status)")
 
     for prog in "${!programs[@]}"; do
         icon=${programs[$prog]}
         icons+=("$(is_running "$prog" "$icon")")
     done
 
-    # maybe implement option to display fallback icon if proc not running
+    # display fallback icon if proc not running
     icons+=("$(is_running "xautolock" "" "")")
     icons+=("$(is_running "pyytx" "" "")")
     # icons+=("$(is_running "pytlocal" "" "")")

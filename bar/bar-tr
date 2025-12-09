@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 # script for displaying transmission status
 #
 # output:
@@ -7,54 +6,81 @@
 
 set -o pipefail
 
-# monitors=$(xrandr --query | grep -w 'connected' | awk '{print $1;}' | wc -l)
-# if [[ "$monitors" -eq 1 ]]; then
-#     exit
-# fi
-
-if [[ "${DWM_BAR_FILLED:-1}" -eq 0 ]]; then
-    icon_stopped=""
-    icon_seed=""
-    icon_done=""
-    icon_idle=""
-    icon_upload=""
-    icon_download=""
-else
-    icon_stopped=""
-    icon_seed="󰹣"
-    icon_done=""
-    icon_idle=""
-    icon_upload="󰬭"
-    icon_download="󰬧"
-fi
-
-case $BLOCK_BUTTON in
-1) setsid -f "$TERMINAL" -e tm ;;
-2) td-toggle ;;
-3) notify-send "${icon_seed} Torrent module" "\- Left click to open tremc.
-- Middle click to toggle transmission.
-- Shift click to edit script.
-Module shows number of torrents:
-${icon_stopped}: paused
-${icon_idle}: idle (seeds needed)
-${icon_upload}: uploading (unfinished)
-${icon_download}: downloading
-${icon_done}: done
-${icon_seed}: done and seeding" ;;
-6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
-*) ;;
-esac
-
 if ! pgrep -f "transmission-daemon" >/dev/null; then
     exit
 fi
 
-transmission-remote -l | grep % |
-    sed " # The letters are for sorting and will not appear.
-    s/.*Stopped.*/A $icon_stopped /;
-    s/.*Seeding.*/Z $icon_seed /;
-    s/.*100%.*/N $icon_done /;
-    s/.*Idle.*/B $icon_idle /;
-    s/.*Uploading.*/L $icon_upload /;
-    s/.*%.*/M $icon_download /" |
-    sort -h | uniq -c | awk '{print $3, $1}' | paste -sd '  ' -
+(($(xrandr | grep -c '\bconnected\b') == 1)) && exit
+
+DOWNLOADING=0
+STOPPED=0
+SEEDING=0
+DONE=0
+IDLE=0
+UPLOADING=0
+
+icon_stopped="S"
+icon_seed="Z"
+icon_done="D"
+icon_idle="I"
+icon_uploading="U"
+icon_downloading="L"
+
+if ((DWM_BAR_UNICODE)); then
+    if ((DWM_BAR_FILLED)); then
+        ICON_SET=(
+            "" # stopped
+            "" # seeding
+            "" # done
+            "" # idle
+            "" # uploading
+            "" # downloading
+        )
+    else
+        ICON_SET=(
+            "" # stopped
+            "󰹣" # seeding
+            "" # done
+            "" # idle
+            "󰬭" # uploading
+            "󰬧" # downloading
+        )
+    fi
+
+    icon_stopped="${ICON_SET[0]}"
+    icon_seed="${ICON_SET[1]}"
+    icon_done="${ICON_SET[2]}"
+    icon_idle="${ICON_SET[3]}"
+    icon_uploading="${ICON_SET[4]}"
+    icon_downloading="${ICON_SET[5]}"
+fi
+
+while read -r line; do
+    case "$line" in
+    *Stopped*) ((STOPPED++)) ;;
+    *Seeding*) ((SEEDING++)) ;;
+    *100%*) ((DONE++)) ;;
+    *Idle*) ((IDLE++)) ;;
+    *Uploading*) ((UPLOADING++)) ;;
+    *%*) ((DOWNLOADING++)) ;;
+    esac
+done < <(transmission-remote -l | grep '%')
+
+if ((DWM_BAR_COLOR)); then
+    icon_stopped="${DWM_BAR_FG:-}${icon_stopped}${DWM_BAR_END:-}"
+    icon_seed="${DWM_BAR_FG:-}${icon_seed}${DWM_BAR_END:-}"
+    icon_done="${DWM_BAR_FG:-}${icon_done}${DWM_BAR_END:-}"
+    icon_idle="${DWM_BAR_FG:-}${icon_idle}${DWM_BAR_END:-}"
+    icon_uploading="${DWM_BAR_FG:-}${icon_uploading}${DWM_BAR_END:-}"
+    icon_downloading="${DWM_BAR_FG:-}${icon_downloading}${DWM_BAR_END:-}"
+fi
+
+output=""
+((STOPPED)) && output+="$icon_stopped $STOPPED "
+((SEEDING)) && output+="$icon_seed $SEEDING "
+((DONE)) && output+="$icon_done $DONE "
+((IDLE)) && output+="$icon_idle $IDLE "
+((UPLOADING)) && output+="$icon_uploading $UPLOADING "
+((DOWNLOADING)) && output+="$icon_downloading $DOWNLOADING"
+
+printf "%s\n" "${output%" "}"

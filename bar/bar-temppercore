@@ -13,7 +13,7 @@ MAX_TEMP=95
 NOTIFYID=888
 WARN_NOTIFIED="/tmp/${PROG}-high"
 
-if ((DWM_UNICODE)); then
+if ((DWM_BAR_UNICODE)); then
     icon_cold=""
     icon_low=""
     icon_mid=""
@@ -52,7 +52,7 @@ function _cpu_tempcore {
     # [[ "$temp_int" -le "$MIN_TEMP" && "$monitors" -eq 1 ]] && exit
 
     ICON="TEMP"
-    ((DWM_UNICODE)) && ICON=$(_get_icon "$temp_int")
+    ((DWM_BAR_UNICODE)) && ICON=$(_get_icon "$temp_int")
 
     # --- high temperature warning ---
     if ((temp_int >= MAX_TEMP)); then
@@ -71,7 +71,7 @@ function _cpu_tempcore {
             "${DWM_BAR_END:-}" \
             "$temp_str"
     else
-        ((DWM_COLOR)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
+        ((DWM_BAR_COLOR)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
         printf "%s %s\n" "$ICON" "$temp_str"
     fi
 

@@ -4,11 +4,10 @@
 #
 # Output: [ICON time]
 
-PROG="${0##*/}"
 CMD=timer
 
 if ! command -v "$CMD" >/dev/null; then
-    printf "%s: %s\n" "$PROG" "err: $CMD not found"
+    printf "%s\n" "err: $CMD not found"
     exit 1
 fi
 
@@ -16,10 +15,10 @@ status=$($CMD status)
 [[ -z "$status" ]] && exit
 
 ICON="POM"
-((DWM_UNICODE)) && { ((DWM_BAR_FILLED)) && ICON="" || ICON=""; }
-((DWM_COLOR)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
+((DWM_BAR_UNICODE)) && { ((DWM_BAR_FILLED)) && ICON="" || ICON=""; }
+((DWM_BAR_COLOR)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
 
-printf "%s%s %s%s" \
+printf "%s%s %s%s\n" \
     "${SEP1:-}" \
     "${ICON}" \
     "${status}" \

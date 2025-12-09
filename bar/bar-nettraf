@@ -9,7 +9,7 @@
 
 icon_up="UP"
 icon_down="DOWN"
-if ((DWM_UNICODE)); then
+if ((DWM_BAR_UNICODE)); then
     if ((DWM_BAR_FILLED)); then
         icon_up=""
         icon_down=""
@@ -19,7 +19,7 @@ if ((DWM_UNICODE)); then
     fi
 fi
 
-if ((DWM_COLOR && !DWM_UNICODE)); then
+if ((DWM_BAR_COLOR && !DWM_BAR_UNICODE)); then
     icon_up="${DWM_BAR_FG:-}${icon_up}${DWM_BAR_END:-}"
     icon_down="${DWM_BAR_FG:-}${icon_down}${DWM_BAR_END:-}"
 fi

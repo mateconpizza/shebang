@@ -8,8 +8,8 @@
 (($(xrandr | grep -c '\bconnected\b') == 1)) && exit
 
 ICON="MEM"
-((DWM_UNICODE)) && { ((DWM_BAR_FILLED)) && ICON=" " || ICON=" "; }
-((DWM_COLOR)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
+((DWM_BAR_UNICODE)) && { ((DWM_BAR_FILLED)) && ICON=" " || ICON=" "; }
+((DWM_BAR_COLOR)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
 
 # The bash shell arithmetic expression ((...)) can't handle floating point.
 [[ -z "$(which bc)" ]] && echo "bc command not found." && exit 1

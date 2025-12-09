@@ -6,8 +6,8 @@
 #   
 
 ICON="CPU"
-((DWM_UNICODE)) && { ((DWM_BAR_FILLED)) && ICON=" " || ICON=" "; }
-((DWM_COLOR && !DWM_UNICODE)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
+((DWM_BAR_UNICODE)) && { ((DWM_BAR_FILLED)) && ICON=" " || ICON=" "; }
+((DWM_BAR_COLOR && !DWM_BAR_UNICODE)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
 
 CPU=$(top -bn1 | grep Cpu | awk '{print $2}')
 digits=${#CPU}

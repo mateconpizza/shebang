@@ -9,12 +9,30 @@ set -euo pipefail
 
 # (($(xrandr | grep -c '\bconnected\b') == 1)) && exit
 
+ICON="MPV"
 PLAYING=""
-((DWM_UNICODE)) && { ((DWM_BAR_FILLED)) && PLAYING="" || PLAYING=""; }
+((DWM_BAR_UNICODE)) && { ((DWM_BAR_FILLED)) && PLAYING="" || PLAYING=""; }
 
 function _logerr {
     printf "%s: %s\n" "${0##*/}" "$*" >&2
     exit 1
+}
+
+function _truncate {
+    local str=$1
+    local max="${2:-18}"
+    local length="${#str}"
+
+    ((length <= max)) && {
+        echo "${str}"
+        return
+    }
+
+    local trunc
+    trunc=$(printf "%s" "$str" | cut -c 1-"$max")
+    trunc+="…"
+
+    echo "${trunc}"
 }
 
 function _is_running {
@@ -37,13 +55,12 @@ function _mpd_status {
         status=$PLAYING
     fi
 
-    artist=$(mpc current -f %artist%)
     track=$(mpc current -f %title%)
+    artist=$(mpc current -f %artist%)
+    artist="${artist^^}"
+    artist=$(_truncate "${artist}")
+    ((DWM_BAR_COLOR)) && artist="${DWM_BAR_FG:-}${artist}${DWM_BAR_END:-}"
 
-    # pos=$(mpc status | grep "%)" | awk '{ print $3 }' | awk -F/ '{ print $1 }')
-    # dur=$(mpc current -f %time%)
-    # printf "%s %s - %s %s/%s\n" "$status" "$artist" "$track" "$pos" "$dur"
-    #
     printf "%s %s - %s\n" "$status" "$artist" "$track"
 }
 
@@ -60,12 +77,16 @@ function _mpv_status {
     local title
     title=$(echo '{ "command": ["get_property", "media-title"] }' | socat - "$MPVSOCKET" 2>/dev/null | jq -r .data)
     local retcode="$?"
+
     [[ "${retcode}" -ne 0 ]] && return
-    local icon=""
-    if [[ "${title}" == "index.m3u8" ]]; then
-        title="YouTube Live"
-    fi
-    echo "${icon}  ${title}"
+
+    case "${title}" in
+    index.m3u8) title="YouTube Live" ;;
+    *watch?v=*) title="Loading..." ;;
+    esac
+    title=$(_truncate "${title}" 30)
+    ((DWM_BAR_COLOR)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
+    echo "${ICON} ${title}"
 }
 
 function _tidal_status {
@@ -88,11 +109,8 @@ function _tidal_status {
     track=$(echo "$json" | jq -r '.title')
     artist=$(echo "$json" | jq -r '.artist')
     artist="${artist^^}"
-    ((DWM_COLOR)) && artist="${DWM_BAR_FG:-}${artist}${DWM_BAR_END:-}"
-
-    # pos=$(echo "$json" | jq -r '.current')
-    # dur=$(echo "$json" | jq -r '.duration')
-    # printf "%s %s - %s %s/%s\n" "$status" "$artist" "$track" "$pos" "$dur"
+    artist=$(_truncate "${artist}")
+    ((DWM_BAR_COLOR)) && artist="${DWM_BAR_FG:-}${artist}${DWM_BAR_END:-}"
 
     printf "%s %s - %s\n" "$status" "$artist" "$track"
 }
@@ -100,10 +118,10 @@ function _tidal_status {
 function main {
     if _is_running "tidal-hifi"; then
         _tidal_status
-    elif _is_running "mpd"; then
-        _mpd_status
     elif _is_running "mpv"; then
         _mpv_status
+    elif _is_running "mpd"; then
+        _mpd_status
     fi
 }
 

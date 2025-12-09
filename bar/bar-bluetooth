@@ -8,22 +8,34 @@ PROG=$(basename "$0")
 LOGGER="${LOGS_PATH:-$HOME/dcs/log}/${PROG}.log"
 
 # devices icon
-if [[ "${DWM_BAR_FILLED:-1}" -eq 0 ]]; then
-    ICON_HEADPHONES=""  #   󰋋 
-    ICON_DEV_DEFAULT="󰎇" # ""
-else
-    ICON_HEADPHONES="" #   󰋋 
-    ICON_DEV_DEFAULT=""
+ICON_HEADPHONES="BT"
+ICON_DEV_DEFAULT="BT"
+if ((DWM_BAR_UNICODE)); then
+    if ((DWM_BAR_FILLED)); then
+        ICON_HEADPHONES=""  #   󰋋 
+        ICON_DEV_DEFAULT="󰎇" # ""
+    else
+        ICON_HEADPHONES="" #   󰋋 
+        ICON_DEV_DEFAULT=""
+    fi
 fi
 
 # battery icons
 warn="🔴"
-icon_critical="󰤿 "
-icon_empty="󰤿 "
-icon_low="󰥀 "
-icon_mid="󰥂 "
-icon_full="󰥈 "
-icon_unknown="󰥇 "
+if ((DWM_BAR_UNICODE)); then
+    icon_critical="󰤿 "
+    icon_empty="󰤿 "
+    icon_low="󰥀 "
+    icon_mid="󰥂 "
+    icon_full="󰥈 "
+    icon_unknown="󰥇 "
+fi
+
+declare -A DEVICES=(
+    ["audio-headset"]="$ICON_HEADPHONES"
+    ["audio-headphones"]="$ICON_HEADPHONES"
+    ["audio-card"]="$ICON_DEV_DEFAULT"
+)
 
 function is_power_on {
     if bluetoothctl show | grep -q "Powered: yes"; then
@@ -111,17 +123,13 @@ function get_battery_icon {
 }
 
 function get_device_icon {
-    local devices device_icon_name
+    local device_icon_name
     device="$1"
 
     device_icon_name=$(bluetoothctl info "$device" | grep "Icon" | cut -d ' ' -f 2-)
 
-    declare -A devices=(
-        ["audio-headset"]="$ICON_HEADPHONES"
-        ["audio-headphones"]="$ICON_HEADPHONES"
-    )
-    if [[ -n "${devices[$device_icon_name]}" ]]; then
-        echo "${devices[$device_icon_name]}"
+    if [[ -n "${DEVICES[$device_icon_name]}" ]]; then
+        echo "${DEVICES[$device_icon_name]}"
     else
         echo "${ICON_DEV_DEFAULT}"
     fi
@@ -132,38 +140,38 @@ function devices_status {
     mapfile -t paired_devices < <(bluetoothctl devices | grep Device | cut -d ' ' -f 2)
 
     for device in "${paired_devices[@]}"; do
-        if is_device_connected "$device"; then
-            local device_alias battery bat_icon device_icon string devices_output
+        is_device_connected "$device" || continue
 
-            device_alias=$(get_device_alias "$device")
-            battery=$(get_device_battery "$device")
-            if [[ -z "$battery" ]]; then
-                continue
-            fi
+        battery=$(get_device_battery "$device")
+        [[ -z "$battery" ]] && continue
 
-            _check_battery "$device_alias" "$battery"
-            bat_icon=$(get_battery_icon "$battery")
+        device_alias=$(get_device_alias "$device")
+        ((DWM_BAR_COLOR)) && device_alias="${DWM_BAR_FG:-}${device_alias}${DWM_BAR_END:-}"
+
+        _check_battery "$device_alias" "$battery"
+        bat_icon=$(get_battery_icon "$battery")
+
+        if ((DWM_BAR_UNICODE)); then
             device_icon=$(get_device_icon "$device")
-
             string="${device_icon} ${device_alias} ${bat_icon}${battery}%"
-
-            if [[ $device_counter -gt 0 ]]; then
-                devices_output+=", $string"
-            else
-                devices_output+=$string
-            fi
-            device_counter=$((device_counter + 1))
+        else
+            string="${device_alias} ${battery}%"
         fi
+
+        ((device_counter++))
+        devices_output+="${devices_output:+, }$string"
     done
 
     echo "$devices_output"
 }
 
-if is_power_on; then
-    devices_connected=$(bluetoothctl info | grep -c 'Name')
-    if [[ "$devices_connected" -eq 1 ]]; then
-        printf "%s" "${SEP1:-}"
-        printf "%s" "$(devices_status)"
-        printf "%s\n" "${SEP2:-}"
-    fi
-fi
+(($(bluetoothctl info | grep -c 'Name') == 0)) && exit
+((DWM_BAR_UNICODE)) && {
+    printf "%s%s%s\n" \
+        "${SEP1:-}" \
+        "$(devices_status)" \
+        "${SEP2:-}"
+    exit
+}
+
+printf "%s\n" "$(devices_status)"

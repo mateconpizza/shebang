@@ -5,20 +5,11 @@
 # Output: [ICON 55%]
 
 PROG=$(basename "$0")
-ICON_BAR="VOL"
+ICON_BAR=""
 ICON_NOTIFY=""
 
-case "${BLOCK_BUTTON:-}" in
-1) setsid --fork pavucontrol ;;
-2) notify-send "TWO" "...." ;;
-4) wpctl set-volume 3%+ ;;
-5) wpctl set-volume 3%- ;;
-6) terminal -e "${EDITOR:-nvim}" "$0" ;;
-*) ;;
-esac
-
 # bar icons
-if ((DWM_UNICODE)); then
+if ((DWM_BAR_UNICODE)); then
     if ((DWM_BAR_FILLED)); then
         ICON_SET=("" "" "" "")
     else
@@ -60,7 +51,7 @@ fi
 VOL=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{print $2}')
 VOL=$(awk "BEGIN { printf \"%.0f\n\", $VOL * 100 }")
 
-function is_muted {
+function _is_muted {
     local status
     status=$(wpctl get-volume @DEFAULT_AUDIO_SINK@)
 
@@ -71,23 +62,25 @@ function is_muted {
     return 1
 }
 
-function load_icons {
-    if is_muted || [[ "$VOL" -eq 0 ]]; then
-        ICON_BAR="$muted_icon"
-        ICON_NOTIFY="$noti_muted_icon"
-    elif [[ "$VOL" -gt 0 && "$VOL" -le 15 ]]; then
-        ICON_BAR="$low_icon"
-        ICON_NOTIFY="$noti_low_icon"
-    elif [[ "$VOL" -gt 15 && "$VOL" -le 65 ]]; then
-        ICON_BAR="$mid_icon"
-        ICON_NOTIFY="$noti_med_icon"
-    elif [[ "$VOL" -gt 65 && "$VOL" -le 100 ]]; then
-        ICON_BAR="$high_icon"
-        ICON_NOTIFY="$noti_high_icon"
+function _load_icons {
+    local ICON_BAR_SET=("$muted_icon" "$low_icon" "$mid_icon" "$high_icon" "$high_icon")
+    local ICON_NOTIFY_SET=("$noti_muted_icon" "$noti_low_icon" "$noti_med_icon" "$noti_high_icon" "$noti_over_icon")
+
+    local idx
+    if _is_muted || ((VOL == 0)); then
+        idx=0
+    elif ((VOL <= 15)); then
+        idx=1
+    elif ((VOL <= 65)); then
+        idx=2
+    elif ((VOL <= 100)); then
+        idx=3
     else
-        ICON_BAR="$high_icon"
-        ICON_NOTIFY="$noti_over_icon"
+        idx=4
     fi
+
+    ICON_BAR="${ICON_BAR_SET[idx]}"
+    ICON_NOTIFY="${ICON_NOTIFY_SET[idx]}"
 }
 
 function _notify {
@@ -103,10 +96,23 @@ function _notify {
 }
 
 function main {
-    ((DWM_UNICODE)) && load_icons
+    _load_icons
     [[ -z "$VOL" ]] && VOL="?"
-    ((DWM_COLOR)) && ICON_BAR="${DWM_BAR_FG:-}${ICON_BAR}${DWM_BAR_END:-}"
-    printf "%s%s  %s%%%s\n" "${SEP1:-}" "$ICON_BAR" "$VOL" "${SEP2:-}"
+
+    ((!DWM_BAR_UNICODE)) && ICON_BAR=$(_is_muted && printf "MUT" || printf "VOL")
+    ((DWM_BAR_COLOR)) && ICON_BAR="${DWM_BAR_FG:-}${ICON_BAR}${DWM_BAR_END:-}"
+
+    digits=${#VOL}
+    space=" "
+    ((digits == 3)) && space=" "
+
+    printf "%s%s%s%s%%%s\n" \
+        "${SEP1:-}" \
+        "$ICON_BAR" \
+        "${space}" \
+        "$VOL" \
+        "${SEP2:-}"
+
     _notify "$ICON_NOTIFY"
 }
 

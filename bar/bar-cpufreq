@@ -5,8 +5,8 @@
 # Output: [ICON governor]
 
 ICON="GOV"
-((DWM_UNICODE)) && { ((DWM_BAR_FILLED)) && ICON="" || ICON=""; }
-((DWM_COLOR)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
+((DWM_BAR_UNICODE)) && { ((DWM_BAR_FILLED)) && ICON="" || ICON=""; }
+((DWM_BAR_COLOR)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
 
 governor=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor)
 printf "%s%b %s%s\n" "${SEP1:-}" "$ICON" "$governor" "${SEP2:-}"

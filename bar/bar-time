@@ -5,6 +5,26 @@
 # Output: [ICON 16:12]
 
 ICON="TIME"
-((DWM_UNICODE)) && { ((DWM_BAR_FILLED)) && ICON=" " || ICON=" "; }
-((DWM_COLOR)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
-printf "%s%s %s%s\n" "${SEP1:-}" "$ICON" "$(date "+%H:%M")" "${SEP2:-}"
+((DWM_BAR_UNICODE)) && { ((DWM_BAR_FILLED)) && ICON=" " || ICON=" "; }
+((DWM_BAR_COLOR)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
+
+# if (($(xrandr | grep -c '\bconnected\b') == 2)); then
+#     DAY=$(date +%a)
+#     ((DWM_BAR_COLOR)) && ICON="${DWM_BAR_FG:-}${DAY^^}${DWM_BAR_END:-}"
+#     ICON+=" $(date +%d)"
+# fi
+
+DAY=$(date +%a)
+((DWM_BAR_COLOR)) && ICON="${DWM_BAR_FG:-}${DAY^^}${DWM_BAR_END:-}"
+ICON+=" $(date +%d)"
+
+h=$(date "+%H:%M" | cut -d':' -f1)
+((DWM_BAR_COLOR)) && h="${DWM_BAR_FG:-}${h}${DWM_BAR_END:-}"
+m=$(date "+%H:%M" | cut -d':' -f2)
+
+printf "%s%s %s:%s%s\n" \
+    "${SEP1:-}" \
+    "$ICON" \
+    "${h}" \
+    "${m}" \
+    "${SEP2:-}"

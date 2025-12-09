@@ -12,23 +12,19 @@ NOTIFIED="/tmp/battery_notified"
 [[ "$BAT_STATUS" == "Full" ]] && exit 0
 
 # notification icons
-warn="🔴"
-if ((DWM_UNICODE)); then
+if ((DWM_BAR_UNICODE)); then
     if ((DWM_BAR_FILLED)); then
-        icon_critical=" "
-        icon_empty=" "
-        icon_low=" "
-        icon_mid=" "
-        icon_full=" "
-        icon_char=""
+        ICON_SET=(" " " " " " " " " " "")
     else
-        icon_critical="󰂎"
-        icon_empty="󰁺"
-        icon_low="󰁼"
-        icon_mid="󰁿"
-        icon_full="󰁹"
-        icon_char=""
+        ICON_SET=("󰂎" "󰁺" "󰁼" "󰁿" "󰁹" "")
     fi
+
+    icon_critical="${ICON_SET[0]}"
+    icon_empty="${ICON_SET[1]}"
+    icon_low="${ICON_SET[2]}"
+    icon_mid="${ICON_SET[3]}"
+    icon_full="${ICON_SET[4]}"
+    icon_char="${ICON_SET[5]}"
 fi
 
 function _notifyme {
@@ -103,37 +99,54 @@ function _get_charging_bar {
 
 function _get_icon {
     local icon=""
-    if [[ "$BAT_CHARGE" -lt "20" ]]; then
-        icon="$warn $icon_critical"
-    elif [[ "$BAT_CHARGE" -lt "30" ]]; then
-        icon="$icon_empty"
-    elif [[ "$BAT_CHARGE" -lt "50" ]]; then
-        icon="$icon_low"
-    elif [[ "$BAT_CHARGE" -lt "90" ]]; then
-        icon="$icon_mid"
+    local icon_set=("${icon_critical}" "${icon_empty}" "${icon_low}" "${icon_mid}" "${icon_full}")
+    local idx
+
+    if ((BAT_CHARGE < 20)); then
+        idx=0
+    elif ((BAT_CHARGE < 30)); then
+        idx=1
+    elif ((BAT_CHARGE < 50)); then
+        idx=2
+    elif ((BAT_CHARGE < 90)); then
+        idx=3
     else
-        icon="$icon_full"
+        idx=4
     fi
 
-    echo "$icon"
+    echo "${icon_set[idx]}"
 }
 
 function _display_charging_bar {
     local ICON="CHAR"
-    if ((DWM_UNICODE)); then
-        ICON="$(_get_charging_bar)"
-        ((DWM_COLOR)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
-        printf "%b %b %s%%" "${ICON}" "$icon_char" "$BAT_CHARGE"
+
+    ((DWM_BAR_UNICODE)) && ICON="$(_get_charging_bar)"
+
+    if ((DWM_BAR_COLOR)); then
+        if ((BAT_CHARGE <= 20)); then
+            DWM_BAR_FG="${DWM_BAR_WARNING}"
+        elif ((BAT_CHARGE >= 80)); then
+            DWM_BAR_FG="${DWM_BAR_HEALTHY}"
+        fi
+        ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
     fi
 
-    ((DWM_COLOR)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
+    if ((DWM_BAR_UNICODE)); then
+        printf "%b %b %s%%" "${ICON}" "$icon_char" "$BAT_CHARGE"
+        return
+    fi
+
     printf "%b%b %s%%" "${ICON}" "$icon_char" "$BAT_CHARGE"
 }
 
 function _display_icon {
     local ICON="BAT"
-    ((DWM_UNICODE)) && ICON=$(_get_icon)
-    ((DWM_COLOR)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
+    ((DWM_BAR_UNICODE)) && ICON=$(_get_icon)
+    if ((DWM_BAR_COLOR)); then
+        ((BAT_CHARGE < 20)) && DWM_BAR_FG="${DWM_BAR_WARNING}"
+        ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
+    fi
+
     printf "%s %d%%" "${ICON}" "${BAT_CHARGE}"
 }
 

@@ -6,15 +6,17 @@
 # formatted date.
 #
 # output: "[ICON Fri, DD MMM]"
-#        󰭦 󰭨 
+#       󰭦 󰭨 
 
-(($(xrandr | grep -c '\bconnected\b') == 1)) && exit
+(($(xrandr | grep -c '\bconnected\b') == 2)) && exit
+
+DATE=$(date "+%a %d %b")
 ICON="DATE"
-((DWM_UNICODE)) && { ((DWM_BAR_FILLED)) && ICON=" " || ICON=" "; }
-((DWM_COLOR)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
+((DWM_BAR_UNICODE)) && { ((DWM_BAR_FILLED)) && ICON=" " || ICON=" "; }
+((DWM_BAR_COLOR)) && ICON="${DWM_BAR_FG:-}${ICON}${DWM_BAR_END:-}"
 
 printf "%s%s %s%s\n" \
-    "${SEP:-}" \
-    "$ICON" \
-    "$(date "+%a %d %b")" \
-    "${SEP:-}"
+    "${SEP1:-}" \
+    "${ICON}" \
+    "${DATE}" \
+    "${SEP2:-}"
