@@ -67,7 +67,7 @@ function _check_battery {
     local battery="$2"
     if [[ "$battery" -le 10 ]] && [[ "$battery" != "" ]]; then
         msg="$device_alias battery is low ${warn} ${icon_critical}${battery}%"
-        echo "$(date +"%Y-%m-%d %H:%M:%S") - $msg" | tee -a "$LOGGER"
+        echo "$(date +"%Y-%m-%d %H:%M:%S") - $msg" | tee -a "$LOGGER" >/dev/null
         _notifyme "$msg" "critical"
     fi
 }
@@ -146,9 +146,15 @@ function devices_status {
         [[ -z "$battery" ]] && continue
 
         device_alias=$(get_device_alias "$device")
-        ((DWM_BAR_COLOR)) && device_alias="${DWM_BAR_FG:-}${device_alias}${DWM_BAR_END:-}"
-
         _check_battery "$device_alias" "$battery"
+        ((DWM_BAR_COLOR)) && {
+            if [[ "$battery" -le 10 ]] && [[ "$battery" != "" ]]; then
+                device_alias="${DWM_BAR_WARNING:-}${device_alias}${DWM_BAR_END:-}"
+            else
+                device_alias="${DWM_BAR_FG:-}${device_alias}${DWM_BAR_END:-}"
+            fi
+        }
+
         bat_icon=$(get_battery_icon "$battery")
 
         if ((DWM_BAR_UNICODE)); then

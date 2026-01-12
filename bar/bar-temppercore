@@ -9,7 +9,7 @@ PROG=$(basename "$0")
 TARGET="k10temp-pci-00c3"
 WARN_ICON="🔥"
 WARN_TEMP=75
-MAX_TEMP=95
+MAX_TEMP=92
 NOTIFYID=888
 WARN_NOTIFIED="/tmp/${PROG}-high"
 

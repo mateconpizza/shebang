@@ -10,7 +10,7 @@ if ! pgrep -f "transmission-daemon" >/dev/null; then
     exit
 fi
 
-(($(xrandr | grep -c '\bconnected\b') == 1)) && exit
+# (($(xrandr | grep -c '\bconnected\b') == 1)) && exit
 
 DOWNLOADING=0
 STOPPED=0

@@ -72,13 +72,10 @@ function _mpv_status {
         fi
     done
 
-    [[ ! -e "${MPVSOCKET:-}" ]] && return
-
-    local title
-    title=$(echo '{ "command": ["get_property", "media-title"] }' | socat - "$MPVSOCKET" 2>/dev/null | jq -r .data)
-    local retcode="$?"
-
-    [[ "${retcode}" -ne 0 ]] && return
+    [[ ! -S "${MPVSOCKET:-}" ]] && return
+    if ! title=$(echo '{ "command": ["get_property", "media-title"] }' | socat - "$MPVSOCKET" 2>/dev/null | jq -r .data 2>/dev/null); then
+        return
+    fi
 
     case "${title}" in
     index.m3u8) title="YouTube Live" ;;
