@@ -4,14 +4,17 @@
 # Extracts <channel_id> from <url> https://www.youtube.com/@username
 
 PROG=$(basename "$0")
-DEPS=(curl grep)
+DEPS=(curl grep yt-dlp)
 
 usage() {
 	cat <<-_EOF
 		usage: $PROG <URL>
 
+		  Extracts the <YouTube Channel ID> from a given <URL>
+
 		example:
 		  https://www.youtube.com/@username
+		  https://www.youtube.com/watch?v=QYHxGBH6o4M
 	_EOF
 	exit 0
 }
@@ -34,9 +37,22 @@ fi
 url="$1"
 [[ -z "$url" ]] && err_and_exit "no <URL> found"
 
-channel_id=$(curl -sL "$url" | grep -oP 'href="https://www\.youtube\.com/feeds/videos\.xml\?channel_id=\K[^"]+')
+# clean URL from yt-local
+url="${url/http:\/\/localhost:9010\/}"
+
+channel_id=$(yt-dlp --print channel_id "$url" 2>/dev/null)
 
 if [[ -z "$channel_id" ]]; then
+    # fallback
+    channel_id=$(
+        curl -sL "$url" |
+        grep -oE '"channelId":"UC[a-zA-Z0-9_-]{22}"' |
+        head -n1 |
+        cut -d'"' -f4
+    )
+fi
+
+if [[ -z "$channel_id" || "$channel_id" = "NA" ]]; then
 	err_and_exit "no <Channel ID> found in the provided <URL>"
 fi
 
