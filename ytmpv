@@ -185,13 +185,22 @@ function _logvideo {
 }
 
 function _play_it {
+    local cmd args
     local url="$1"
     [[ -z "$url" ]] && { _notifyerr "no URL found"; }
+
+    if _has "mpvc"; then
+        cmd=mpvc
+        args=(--add)
+    else
+        cmd=mpv
+        args=(--really-quiet)
+    fi
 
     url=$(_clean_url "$url")
     if _valid_url "$url"; then
         _logvideo "$url"
-        setsid -f mpv --really-quiet "$url"
+        setsid -f "${cmd}" "${args[@]}" "$url"
     fi
 }
 
@@ -222,7 +231,12 @@ function _clean_url {
 
 function main {
     _has -v "${DEPS[@]}"
+
     local url="${1:-$(_has xclip && xclip -o -sel clip)}"
+
+    # clean URL from yt-local
+    url="${url/http:\/\/localhost:9010\/}"
+
     case "$url" in
     -h | --help | help) _usage ;;
     -d | --db | db) _create_ytmpv_db ;;
