@@ -72,7 +72,6 @@ function _lock_remove {
 
     _logger "removing $file"
     rm -f "$file"
-    sleep 0.5
 }
 
 # creates a specified file and logs the action.
@@ -105,7 +104,8 @@ function _suspend_hybrid {
 }
 
 function pre_exit {
-    _lock_remove "$LOGGER"
+    # _lock_remove "$LOGGER"
+    _logger "service stopping"
 }
 
 for dep in "${DEPS[@]}"; do
@@ -117,7 +117,7 @@ done
 
 _logger "started at $(date)"
 
-trap pre_exit EXIT SIGTERM
+trap pre_exit EXIT
 
 while true; do
     if _seen "$HIBERNATE_LOCK"; then
