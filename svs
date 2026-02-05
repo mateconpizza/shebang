@@ -1,0 +1,190 @@
+#!/bin/sh
+
+# ┏━┓╻ ╻┏━┓
+# ┗━┓┃┏┛┗━┓
+# ┗━┛┗┛ ┗━┛
+# service visual status
+# https://smarden.org/runit/
+# https://github.com/g-pape/runit/
+# https://github.com/g-pape/socklog/
+
+# TODO:
+# - [ ] Add 'TIME' for `down` state
+
+set -eu
+
+PROG=${0##*/}
+SVDIR=${SVDIR:-}
+if [ ! -d "$SVDIR" ]; then
+    echo "$PROG: 'SVDIR' directory not found: '$SVDIR'" >&2
+    exit 1
+fi
+
+# icons
+iconok="✓"
+iconerr="✗"
+iconempty="-"
+iconsleep="󰒲"
+
+# state
+statefail="FAIL"
+staterun="RUNNING"
+statesleep="SLEEP"
+
+# colors
+BLUE=$(tput setaf 4)
+CYAN=$(tput setaf 6)
+DIM=$(tput dim)
+GREEN=$(tput setaf 2)
+MAGENTA=$(tput setaf 5)
+RED=$(tput setaf 1)
+BOLD=$(tput bold)
+RESET="$(tput sgr0)"
+
+truncate_ellipsis() {
+    s=$1
+    max=$2
+
+    [ "${#s}" -le "$max" ] && {
+        printf "%s" "$s"
+        return
+    }
+
+    cut=$((max - 3))
+    printf "%.*s..." "$cut" "$s"
+}
+
+fmt_short() {
+    s=$1
+    h=$((s / 3600))
+    m=$((s % 3600 / 60))
+    s=$((s % 60))
+
+    if [ "$h" -gt 0 ]; then
+        printf "%dh %dm" "$h" "$m"
+    elif [ "$m" -gt 0 ]; then
+        printf "%dm %ds" "$m" "$s"
+    else
+        printf "%ds" "$s"
+    fi
+}
+
+reset_vars() {
+    icon=$iconok
+    icon_color=$DIM
+    service=""
+    status=""
+    uptime=""
+    uptime_human=""
+    state=$staterun
+    state_color=$DIM
+    enabled=true
+    enabled_color=$DIM
+    pid=""
+    pid_color=$DIM
+    command=""
+    command_color=$DIM
+}
+
+showlogs() {
+    menu=fzf
+    if ! command -v $menu >/dev/null; then
+        echo "$PROG: '$menu' dep not found" >&2
+        exit 1
+    fi
+
+    : "${SVLOGS:=$HOME/dcs/log/}"
+
+    service=$(
+        for d in "$SVLOGS"/*; do
+            [ -d "$d" ] && printf '%s\t%s\n' "$(basename "$d")" "$d"
+        done | $menu --prompt="logs> " --with-nth=1 --delimiter='\t' --nth=1 | cut -f2
+    )
+
+    [ -n "$service" ] || exit 1
+    [ ! -f "$service" ] || exit 1
+
+    tail -f "$service/current"
+}
+
+case "${1:-}" in
+-l | --log) showlogs ;;
+*) ;;
+esac
+
+# determine state based on priority:
+# 1. sleeping (down file + no pid)
+# 2. running (has pid)
+# 3. down (down file + had pid but stopped)
+# 4. fail (no pid, no down file)
+
+# Header
+printf "${BOLD}  %-25s %-10s %-12s %-8s %-16s %-8s${RESET}\n" \
+    "SERVICE" "STATE" "ENABLED" "PID" "COMMAND" "TIME"
+
+for path in "$SVDIR"/*; do
+    reset_vars
+    service=${path##*/}
+
+    status=$(sv status "$service" 2>/dev/null)
+
+    if [ -f "$path/supervise/pid" ]; then
+        pid=$(cat "$path/supervise/pid")
+    fi
+
+    if [ -n "$pid" ]; then
+        # RUNNING
+        uptime=${status##*) }
+        uptime=${uptime%s}
+        uptime_human=$(fmt_short "$uptime")
+
+        command=$(ps -p "$pid" -o args=)
+        command=$(truncate_ellipsis "$command" 16)
+        command_color=$CYAN
+
+        pid_color=$MAGENTA
+
+        state_color=$GREEN
+        enabled=true
+        enabled_color=$BLUE
+        icon="$iconok"
+        icon_color=$GREEN
+
+    elif [ -f "$path/down" ]; then
+        # SLEEP
+        state="$statesleep"
+        state_color=$DIM
+        enabled=false
+        enabled_color=$DIM
+
+        pid="$iconempty"
+        command="$iconempty"
+        uptime_human="$iconempty"
+
+        icon="$iconsleep"
+        icon_color=$DIM
+
+    else
+        # FAIL
+        state="$statefail"
+        state_color=$RED
+
+        enabled=false
+        enabled_color=$RED
+
+        pid="$iconempty"
+        command="$iconempty"
+        uptime_human="$iconempty"
+
+        icon="$iconerr"
+        icon_color=$RED
+    fi
+
+    printf "%s%s%s %-25s %s%-10s%s %s%-12s%s %s%-8s%s %s%-16s%s %s%-8s%s\n" \
+        "$icon_color" "$icon" "$RESET" "$service" \
+        "$state_color" "$state" "$RESET" \
+        "$enabled_color" "$enabled" "$RESET" \
+        "$pid_color" "$pid" "$RESET" \
+        "$command_color" "$command" "$RESET" \
+        "$DIM" "$uptime_human" "$RESET"
+done

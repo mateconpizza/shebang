@@ -4,11 +4,11 @@
 [![Bash](https://img.shields.io/badge/Bash-4EAA25?logo=gnubash&logoColor=fff)](#)
 
 > [!NOTE]
+> 🆕 [`svs`](https://github.com/mateconpizza/shebang/blob/main/svs) - service visual status for runit `POSIX`
+>
 > 🆕 [`release.sh`](https://github.com/mateconpizza/shebang/blob/main/release.sh) - git `version management` and `release` automation `wip`
 >
 > 🆕 [`share-files`](https://github.com/mateconpizza/shebang/blob/main/share-files) - simple file-selector and share with [`nnn`](https://github.com/jarun/nnn) and [`dragon-drop`](https://github.com/mwh/dragon) _(remove EXIF metadata from images)_
->
-> 🆕 [`tsend`](https://github.com/mateconpizza/shebang/blob/main/tsend) - send a command to execute in all sessions and all <windows|panes> in `tmux`
 
 - [`brightness`](https://github.com/mateconpizza/shebang/blob/main/brightness) - managing brightness
 - [`burniso`](https://github.com/mateconpizza/shebang/blob/main/burniso) - burning `iso` images to USB devices using `dd`
