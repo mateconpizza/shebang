@@ -1,0 +1,24 @@
+#!/bin/sh
+# ┌─┐┬  ┬┌─┐┌┬┐┌─┐┌┐┌┬ ┬
+# │  │  │├─┘│││├┤ ││││ │
+# └─┘┴─┘┴┴  ┴ ┴└─┘┘└┘└─┘
+# clipboard dmenu selection
+
+CLIP_DIR="${CLIP_DIR:-/tmp/clip_manager}"
+CACHE_DIR="$CLIP_DIR/cache"
+CLIP_HISTORY="$CLIP_DIR/history"
+
+# show only the PREVIEW in dmenu by stripping the first 5 chars (hash + space)
+# but we need to know which one was picked, so we search the history file again
+chosen_line=$(tac "$CLIP_HISTORY" | cut -c 3- | dmenu -p 'clip>' -l 10 "$@")
+
+[ -z "$chosen_line" ] && exit
+
+# find the hash corresponding to that line in the history file
+# we take the latest occurrence (head -n 1) since history is appended
+hash=$(grep -F "$chosen_line" "$CLIP_HISTORY" | tail -n 1 | awk '{print $1}')
+
+if [ -f "$CACHE_DIR/$hash" ]; then
+    cat "$CACHE_DIR/$hash" | xclip -selection clipboard
+    cat "$CACHE_DIR/$hash" | xclip -selection primary
+fi

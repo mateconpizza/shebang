@@ -1,0 +1,51 @@
+#!/bin/sh
+# ┌─┐┬  ┬┌─┐┌┬┐
+# │  │  │├─┘ ││
+# └─┘┴─┘┴┴  ─┴┘
+# clipboard manager
+
+CLIP_DIR="${CLIP_DIR:-/tmp/clip_manager}"
+CACHE_DIR="$CLIP_DIR/cache"
+CLIP_HISTORY="$CLIP_DIR/history"
+
+mkdir -p "$CACHE_DIR"
+[ ! -f "$CLIP_HISTORY" ] && touch "$CLIP_HISTORY"
+[ ! -s "$CLIP_HISTORY" ] && echo "------ no items" >>"$CLIP_HISTORY"
+
+while clipnotify; do
+    content=$(xclip -o -selection clipboard 2>/dev/null)
+    trimmed=$(printf '%s' "$content" | tr -d '[:space:]')
+    [ -z "$content" ] || [ -z "$trimmed" ] && continue
+
+    # 8-char hash
+    hash=$(printf '%s' "$content" | md5sum | cut -c 1-8)
+
+    # save the content to the cache
+    printf '%s' "$content" >"$CACHE_DIR/$hash"
+
+    # create a clean, single-line version of the string
+    clean_content=$(printf '%s' "$content" | tr -d '\n\r' | sed 's/  */ /g')
+
+    # cut it for the preview
+    preview=$(printf '%s' "$clean_content" | cut -c 1-80)
+
+    # accurately count lines (works even without a trailing newline)
+    lines=$(printf '%s' "$content" | grep -c '^')
+
+    # add multi-line or long-line indicators for dmenu
+    if [ "$lines" -gt 1 ]; then
+        preview="$preview  [+$((lines - 1)) lines]"
+    else
+        # get the character count of the cleaned single line
+        chars=${#clean_content}
+        if [ "$chars" -gt 80 ]; then
+            preview="$preview  [+$((chars - 80)) chars]"
+        fi
+    fi
+
+    # remove previous instance of this hash/content to keep history unique
+    sed -i "/^$hash /d" "$CLIP_HISTORY" 2>/dev/null
+
+    # log it: [hash] [preview]
+    echo "$hash $preview" >>"$CLIP_HISTORY"
+done
