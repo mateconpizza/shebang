@@ -38,10 +38,9 @@ for dep in "${DEPS[@]}"; do
 done
 
 function _notify {
-    local icon="transmission"
     local notify_args
     local mesg="<b>$1</b>"
-    declare -a notify_args=(-r "888" -i "$icon" "${PROG:-"no-name"}")
+    declare -a notify_args=(--replace-id="888" --icon="transmission" "${PROG:-"no-name"}")
     notify-send "${notify_args[@]}" "$mesg"
 }
 
@@ -51,6 +50,19 @@ function is_running {
     fi
 
     return 0
+}
+
+function _add_magnet {
+    local magnet="$1"
+    local msg="torrent added"
+
+    if [[ -z "$magnet" ]]; then
+        _logme "you must provide a magnet link"
+        exit 1
+    fi
+
+    tm-add "$magnet" && notify-send "$msg"
+    _logme "$msg"
 }
 
 function _add_torrent {
@@ -78,19 +90,6 @@ function _add_torrent {
 
     _notify "$mesg"
     return
-}
-
-function _add_magnet {
-    local magnet="$1"
-    local msg="torrent added"
-
-    if [[ -z "$magnet" ]]; then
-        _logme "you must provide a magnet link"
-        exit 1
-    fi
-
-    tm-add "$magnet" && notify-send "$msg"
-    _logme "$msg"
 }
 
 function _stop {

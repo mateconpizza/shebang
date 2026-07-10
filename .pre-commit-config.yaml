@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.30.0
+    rev: v8.30.1
     hooks:
       - id: gitleaks
   - repo: https://github.com/shellcheck-py/shellcheck-py
@@ -16,10 +16,10 @@ repos:
       - id: check-executables-have-shebangs
   # Spell
   - repo: https://github.com/crate-ci/typos
-    rev: v1.43.5
+    rev: v1.48.0
     hooks:
       - id: typos
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.1
+    rev: v2.4.2
     hooks:
       - id: codespell

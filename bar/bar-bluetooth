@@ -10,13 +10,16 @@ LOGGER="${LOGS_PATH:-$HOME/dcs/log}/${PROG}.log"
 # devices icon
 ICON_HEADPHONES="BT"
 ICON_DEV_DEFAULT="BT"
+ICON_INPUT_GAMING="GP"
 if ((DWM_BAR_UNICODE)); then
     if ((DWM_BAR_FILLED)); then
         ICON_HEADPHONES=""  #   󰋋 
         ICON_DEV_DEFAULT="󰎇" # ""
+        ICON_INPUT_GAMING="󰊗"
     else
         ICON_HEADPHONES="" #   󰋋 
         ICON_DEV_DEFAULT=""
+        ICON_INPUT_GAMING="󰊗"
     fi
 fi
 
@@ -35,6 +38,7 @@ declare -A DEVICES=(
     ["audio-headset"]="$ICON_HEADPHONES"
     ["audio-headphones"]="$ICON_HEADPHONES"
     ["audio-card"]="$ICON_DEV_DEFAULT"
+    ["input-gaming"]="$ICON_INPUT_GAMING"
 )
 
 function is_power_on {

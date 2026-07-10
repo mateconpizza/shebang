@@ -2,11 +2,19 @@
 
 # simple bash script for suckless system prompt.
 
-PROG=$(basename "$0")
-DEPS=(dmenu dwm slock)
-OPTS=(" lock" " suspend" "󰋊 hibernate" "󰍃 logout")
-OPTS+=(" reboot" " poweroff" "󱄌 restartwm" " displayoff")
+PROG="${0##*/}"
 XDG_CURRENT_DESKTOP=${XDG_CURRENT_DESKTOP:-dwm}
+DEPS=(dmenu dwm slock)
+OPTS=(
+    " lock"
+    " suspend"
+    "󰋊 hibernate"
+    "󰍃 logout"
+    " reboot"
+    " poweroff"
+    "󱄌 restartwm"
+    " displayoff"
+)
 
 function _logerr {
     notify-send "$PROG" "$*"
@@ -20,13 +28,6 @@ function _logme {
 
 function main {
     local uptime chosen
-
-    for cmd in "${DEPS[@]}"; do
-        if ! command -v "$cmd" >/dev/null; then
-            _logerr "'$cmd' command not found."
-        fi
-    done
-
     uptime=$(uptime -p | sed -e 's/up //g')
     chosen=$(printf "%s\n" "${OPTS[@]}" | dmenu -i -p " $(hostname): $uptime")
 
@@ -66,5 +67,11 @@ function main {
     *) exit ;;
     esac
 }
+
+for cmd in "${DEPS[@]}"; do
+    if ! command -v "$cmd" >/dev/null; then
+        _logerr "'$cmd' command not found."
+    fi
+done
 
 main

@@ -270,6 +270,10 @@ function parse_and_exit {
         ;;
     *) ;;
     esac
+
+    if pgrep -x dwmblocks >/dev/null; then
+        pkill -RTMIN+13 dwmblocks
+    fi
 }
 
 function main {
@@ -289,6 +293,8 @@ function main {
 
     _save_pid "$$" "$TIMER_NAME"
     _set_timer "$DURATION" "$TIMER_NAME"
+
+    pkill -RTMIN+13 dwmblocks
 }
 
 main "$@"

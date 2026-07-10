@@ -42,8 +42,26 @@ function _is_running {
     # "mpd") pgrep -f "$cmd" >/dev/null ;;
     "tidal-hifi") curl -s http://localhost:47836/current >/dev/null ;;
     # "mpv") pgrep -f "$cmd" >/dev/null ;;
-    *) pgrep -f "$cmd" >/dev/null ;;
+    *) pgrep -x "$cmd" >/dev/null ;;
     esac
+}
+
+function _rmpc_status {
+    local status artist track
+    status=$(mpc status | sed -n 2p | awk '{print $1;}')
+    if [[ "$status" = "[paused]" || "$status" = "" ]]; then
+        return
+    else
+        status=$PLAYING
+    fi
+
+    track=$(rmpc song | jq -r '.metadata.title')
+    artist=$(rmpc song | jq -r '.metadata.artist')
+    artist="${artist^^}"
+    artist=$(_truncate "${artist}")
+    ((DWM_BAR_COLOR)) && artist="${DWM_BAR_FG:-}${artist}${DWM_BAR_END:-}"
+
+    printf "%s %s - %s\n" "$status" "$artist" "$track"
 }
 
 function _mpd_status {
@@ -119,6 +137,8 @@ function main {
         _mpv_status
     elif _is_running "mpd"; then
         _mpd_status
+    elif _is_running "rmpc"; then
+        _rmpc_status
     fi
 }
 

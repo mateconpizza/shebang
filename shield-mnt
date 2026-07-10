@@ -2,6 +2,12 @@
 
 PROG=$(basename "$0")
 
+# credentials
+USERNAME=
+PASSWORD=
+URI=
+DEST=
+
 function log_err {
     printf "%s: %s\n" "$PROG" "$*"
     exit 1
@@ -25,22 +31,26 @@ if ! command -v pass >/dev/null; then
     log_err "'pass' not found"
 fi
 
-mapfile -t PASSDATA < <(pass show devices/shield)
-USERNAME="${PASSDATA[0]}"
-PASSWORD="${PASSDATA[1]}"
-URI="${PASSDATA[2]}"
-DEST="${PASSDATA[3]}"
+function get_credentials {
+    mapfile -t PASSDATA < <(pass show devices/shield)
+    PASSWORD="${PASSDATA[0]}"
+    USERNAME="${PASSDATA[1]}"
+    URI="${PASSDATA[2]}"
+    DEST="${PASSDATA[3]}"
+}
 
-VARS=(USERNAME PASSWORD URI)
-for var in "${VARS[@]}"; do
-    if [[ -z "${!var}" ]]; then
-        log_err "var '$var' is not set or empty."
+function validate_credentials {
+    VARS=(USERNAME PASSWORD URI)
+    for var in "${VARS[@]}"; do
+        if [[ -z "${!var}" ]]; then
+            log_err "var '$var' is not set or empty."
+        fi
+    done
+
+    if [[ ! -d "$DEST" ]]; then
+        log_err "path not found: '$DEST'"
     fi
-done
-
-if [[ ! -d "$DEST" ]]; then
-    log_err "path not found: '$DEST'"
-fi
+}
 
 function is_mounted {
     if ! mountpoint "$DEST" >/dev/null; then
@@ -50,6 +60,9 @@ function is_mounted {
 }
 
 function mount_shield {
+    get_credentials
+    validate_credentials
+
     if is_mounted; then
         log_err "shield already mounted on '$DEST'"
     fi
@@ -60,6 +73,9 @@ function mount_shield {
 }
 
 function umount_shield {
+    get_credentials
+    validate_credentials
+
     if ! is_mounted; then
         log_err "shield is not mounted"
     fi

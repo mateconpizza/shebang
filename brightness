@@ -40,10 +40,12 @@ function _statusbar {
 
 function _notify_icon {
     local low mid high
+    # shellcheck source=/dev/null
+    [[ -f "$HOME/.config/shell/theme.sh" ]] && . "$HOME/.config/shell/theme.sh"
     if [[ "${GLOBAL_THEME:-dark}" == "dark" ]]; then
-        high="brightness-high-symbolic"
-        low="brightness-low-symbolic"
-        mid="brightness-medium-symbolic"
+        high="display-brightness-symbolic"
+        low="display-brightness-symbolic"
+        mid="display-brightness-symbolic"
     else
         high="display-brightness-symbolic"
         low="display-brightness-symbolic"

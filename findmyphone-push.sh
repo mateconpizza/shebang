@@ -4,7 +4,7 @@ PROG="${0##*/}"
 TITLE="📱 Find my phone..."
 MESG="You found me!!!"
 RETRY_SEG=30
-EXPIRE_SEG=90
+EXPIRE_SEG=900
 
 # shellcheck source=/dev/null
 [[ -f "${PRIVATE_ROOT:-}/pushover.sh" ]] && . "$PRIVATE_ROOT/pushover.sh"

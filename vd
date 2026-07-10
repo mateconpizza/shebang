@@ -20,6 +20,7 @@ sudo --askpass --reset-timestamp
 PROG="${0##*/}"
 LOGGER="${LOGS_PATH:-$HOME/dcs/log/}/void.log"
 BULLET="\u2022"
+CACHE_PKGS="${XDG_CACHE_HOME:-$HOME/.cache}/void_pkgs"
 
 # Icons
 declare -A ICONS
@@ -137,14 +138,22 @@ function _install {
     fzf_opts+=(--query="$query")
     fzf_opts+=(--prompt="${ICONS[install]} Packages> ")
     fzf_opts+=(--marker=" ")
-    fzf_opts+=(--preview='xbps-query -R {}')
+    # shellcheck disable=SC2016
+    fzf_opts+=(--preview='xbps-query -R "$(printf "%s" {} | sed "s/-[0-9].*//")"')
     fzf_opts+=(--border-label="<Available Packages>")
     fzf_opts+=(--preview-label='[ Package Information ]')
     fzf_opts+=(--preview-label-pos='0:bottom')
     fzf_opts+=(--color header:italic)
     fzf_opts+=(--header 'Press CTRL-/ to toggle package information')
 
-    mapfile -t selected < <(xbps-query -Rs "$query" | awk '{print $2}' | fzf "${fzf_opts[@]}")
+    if [[ ! -f "${CACHE_PKGS}" ]]; then
+        echo "${PROG}: generating cache..."
+        mapfile -t packages < <(xbps-query -Rs "$query")
+        printf "%s\n" "${packages[@]}" | tee "$CACHE_PKGS" >/dev/null
+    fi
+
+    # mapfile -t selected < <(xbps-query -Rs "$query" | awk '{print $2}' | fzf "${fzf_opts[@]}")
+    mapfile -t selected < <(cat "${CACHE_PKGS}" | awk '{print $2}' | fzf "${fzf_opts[@]}")
     if [[ "${#selected[@]}" -eq 0 ]]; then
         exit 1
     fi
@@ -190,6 +199,40 @@ function _uninstall {
     if [[ $retcode -eq 0 ]]; then
         _logerr "UNINSTALL	" "${selected[@]}"
     fi
+}
+
+function _info {
+    local selected fzf_opts
+    local query="${1:-}"
+
+    mapfile -t fzf_opts < <(_get_fzf_defaults "80")
+    fzf_opts+=(--multi)
+    fzf_opts+=(--query="$query")
+    fzf_opts+=(--prompt="${ICONS[install]} Packages> ")
+    fzf_opts+=(--marker=" ")
+    fzf_opts+=(--preview='xbps-query -R {}')
+    fzf_opts+=(--border-label="<Available Packages>")
+    fzf_opts+=(--preview-label='[ Package Information ]')
+    fzf_opts+=(--preview-label-pos='0:bottom')
+    fzf_opts+=(--color header:italic)
+    fzf_opts+=(--header 'Press CTRL-/ to toggle package information')
+
+    if [[ ! -f "${CACHE_PKGS}" ]]; then
+        echo "${PROG}: generating cache..."
+        mapfile -t packages < <(xbps-query -Rs "$query")
+        printf "%s\n" "${packages[@]}" | tee "$CACHE_PKGS" >/dev/null
+    fi
+    mapfile -t selected < <(xbps-query -Rs "$query" | awk '{print $2}' | fzf "${fzf_opts[@]}")
+    if [[ "${#selected[@]}" -eq 0 ]]; then
+        exit 1
+    fi
+
+    for pkg in "${selected[@]}"; do
+        xbps-query -R "${pkg}"
+        echo
+        read -r -p "${BOLD}Press ENTER to continue...${RESET}" _
+        clear
+    done
 }
 
 function _search {
@@ -290,6 +333,7 @@ function main {
     -U | uninstall) shift && _uninstall "$@" ;;
     -q | query) shift && query "$@" ;;
     -s | search) shift && _search "$@" ;;
+    -I | info) shift && _info "$@" ;;
     -c | clean) clean ;;
     -l | log) show_log ;;
     -h | help) _usage ;;

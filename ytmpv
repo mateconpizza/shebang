@@ -16,10 +16,10 @@ set -o pipefail
 
 PROG=$(basename "$0")
 DEPS=(mpv curl perl)
-XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
 PROMPT="  ${PROG}>"
 DBNAME="ytmpv.db"
-DBPATH="${LOGS_PATH:-$HOME}/$DBNAME"
+APPHOME="${XDG_DATA_HOME:-$HOME/.local/share}/ytmpv"
+DBPATH="$APPHOME/$DBNAME"
 
 DEF_TITLE="err: no video title found"
 DEF_CHANNEL="err: no video channel found"

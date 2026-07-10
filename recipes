@@ -7,10 +7,10 @@
 # script to open my recipes in zathura
 
 PROG=$(basename "$0")
-ROOT="${XDG_DOCUMENTS_DIR:-}/vimwiki/cookbook/"
+ROOT="${XDG_DOCUMENTS_DIR:-}/cookbook/"
 TMP="/tmp"
 TERMINAL=${TERMINAL:-st}
-DEPS=(pandoc zathura find pdflatex)
+DEPS=(zathura find)
 
 function send_notification {
     local prog

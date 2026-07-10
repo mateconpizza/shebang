@@ -172,6 +172,10 @@ function main {
         wipe "$device"
         exit
         ;;
+    --help | -h)
+        usage
+        exit
+        ;;
     *) ;;
     esac
 

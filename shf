@@ -13,6 +13,7 @@ set -euo pipefail
 # almost the same.
 
 PROG="${0##*/}"
+export DISPLAY=":0"
 TMPDIRECTORY="$(mktemp -t -d "$PROG.XXXXXX")"
 TMPFILE="${TMPDIRECTORY}/${PROG}.file"
 

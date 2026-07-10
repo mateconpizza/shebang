@@ -13,6 +13,7 @@ PROG=${0##*/}
 NET="192.168.1.0/24"
 NET_ADDR=("$NET")
 NOCONFIRM=0
+DRYRUN=0
 
 declare -a RULES
 
@@ -36,6 +37,9 @@ DOT="${RED}${BOLD}+${RESET}"
 function show_info {
     echo -e "${MAGENTA}$(date +%H:%M)${RESET} ${WHITE}$(date "+%A, %d %B %Y")${RESET} ${WHITE}$(hostname)${RESET}\n"
     echo -ne "${MAGENTA} UFW Rules $RESET" "${CYAN} Network ${NET_ADDR[*]} $RESET\n\n"
+    if [[ "$DRYRUN" -eq 1 ]]; then
+        echo -e "${YELLOW}${BOLD}+ Dry Run mode${RESET}\n"
+    fi
 }
 
 function confirm {
@@ -175,6 +179,14 @@ function rules_all {
 }
 
 function rules_apply {
+    if [[ "$DRYRUN" -eq 1 ]]; then
+        for i in "${RULES[@]}"; do
+            echo "$i: ${BLUE}${RESET}"
+        done
+
+        return
+    fi
+
     sudo -k -p "[sudo] Apply rules:  "
     for i in "${RULES[@]}"; do
         echo -n "$i: ${BLUE}"
@@ -231,14 +243,19 @@ Options:
     transmission    Set Transmission's rules
     syncthing       Set Syncthing's rules
     localsend       Set LocalSend's rules
-    --nc            Will add rules without confirm"
+    --nc            Add rules without confirm
+    --dry-run       Show the rules without apply"
 }
 
 function main {
+    if [[ "$1" == "--dry-run" ]]; then
+        DRYRUN=1
+        shift
+    fi
     local opt="$1"
     local confirm="$2"
 
-    if [[ "${opt-}" =~ ^-*h(elp)?$ ]]; then # || [[ "$#" -ne 1 ]]; then
+    if [[ "${opt-}" =~ ^-*h(elp)?$ || "$#" -ne 1 ]]; then
         usage && exit
     fi
 
