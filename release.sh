@@ -177,7 +177,7 @@ confirm "New ${BLUE}tag${RESET} $NEW_VERSION, continue?" || exit 1
 run git tag -a "${NEW_VERSION}" -F "${TEMPFILE}"
 
 # generate and show tag changelog
-git cliff --tag "${NEW_VERSION}" --strip all >"${TEMPFILE}"
+git cliff --latest --strip all >"${TEMPFILE}"
 [[ -s "$TEMPFILE" ]] && "$READER" "$TEMPFILE" || echo "New version: ${NEW_VERSION}"
 
 confirm "New version: ${BLUE}${NEW_VERSION}${RESET} continue?" || exit 1
