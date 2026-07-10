@@ -7,19 +7,21 @@
 # deps: <notify-send> <xdotool> <pass> <dmenu>
 
 shopt -s nullglob globstar
-
+# set -x
 set -ou pipefail
 
 PROG="${0##*/}"
 DEPS=(xdotool pass dmenu)
 PASS=$(which pass)
+PASSMENU_TMUX=${PASSMENU_TMUX:-0}
 
 # vars
 # shellcheck disable=SC2034
-EDITOR="nvim -u NONE"
-TERMINAL=${TERMINAL:-st}
-PASSWORD_STORE_CLIP_TIME=${PASSWORD_STORE_CLIP_TIME:-15}
-FAVORITES=${PASSWORD_STORE_DIR:-~/.local/share/pass}/favorites
+export EDITOR="nvim -u NONE"
+export TERMINAL=${TERMINAL:-st}
+export PASSWORD_STORE_DIR=${PASSWORD_STORE_DIR:-~/.local/share/pass}
+export PASSWORD_STORE_CLIP_TIME=${PASSWORD_STORE_CLIP_TIME:-15}
+FAVORITES=${PASSWORD_STORE_DIR}/favorites
 #                         
 
 # menu
@@ -30,6 +32,7 @@ ICONS["copy"]=""
 ICONS["edit"]=""
 ICONS["otp"]=""
 ICONS["typed"]=""
+ICONS["login"]=""
 ICONS["show"]=""
 ICONS["favorite"]=""
 ICONS["favorite_added"]=""
@@ -60,6 +63,7 @@ Options:
     -e, --edit      Edit selected password
     -l, --list      List all passwords
     -o, --otp       Copy one-time-password
+    -u, --user      Copy username|login
     -t, --type      Password is typed into the terminal
     -s, --show      Show selected password
     -h, --help      Show this help message and exit
@@ -156,12 +160,19 @@ function _typed {
     # TODO: add support for wayland
     local item="$1"
     [[ -z "$item" ]] && _logerr "typed: no item given"
-    local _xdotool="xdotool type --clearmodifiers --file -"
+    local _xdotool="xdotool type --delay 0 --clearmodifiers --file -"
 
     echo "$item" | {
         IFS= read -r item
         printf %s "$item"
     } | $_xdotool
+}
+
+# copy given item to system clipboard
+function _copy {
+    local item="$1"
+    [[ -z "$item" ]] && _logerr "copy: no item given"
+    echo "${item}" | xclip -selection clipboard
 }
 
 # retrieves a list of all password paths stored in the password store directory
@@ -215,7 +226,7 @@ function _pwd_edit {
     [[ -z $pwd ]] && exit
 
     if _in_terminal; then
-        if [[ -n "${TMUX:-}" ]]; then
+        if [[ -n "${TMUX:-}" ]] && ((PASSMENU_TMUX)); then
             tmux display-popup -E -w 65% -h 65% "$PASS edit $pwd"
         else
             "$PASS" edit "$pwd"
@@ -267,6 +278,38 @@ function _pwd_list {
     [[ -z "${pwd_path}" ]] && exit
     echo "$pwd_path"
     exit 0
+}
+
+function _pwd_login {
+    local pwd _action icon data
+    pwd="${1:-}"
+    [[ -z "${pwd}" ]] && _logerr "login: no password given"
+    icon="${ICONS[login]}"
+
+    mapfile -t data < <(pass show "$pwd")
+    if (( ${#data[@]} < 2 )); then
+        _logerr "login: not found"
+    fi
+    USERNAME="${data[1]}"
+    USERNAME="${USERNAME#*: }"
+    [[ -z "${USERNAME}" ]] && _logerr "login: not found"
+
+    # which action to perform?
+    local _actions=("${ICONS[copy]} copy" "${ICONS[typed]} typed")
+    _action=$(_select "${USERNAME}>" "" "${_actions[@]}")
+
+    [[ -z "${_action}" ]] && exit 1
+    _action=$(echo "$_action" | awk '{print $2}')
+
+    if [[ "$_action" = "typed" ]]; then
+        _typed "${USERNAME}"
+        return
+    fi
+
+    _copy "${USERNAME}"
+
+    local mesg="Copied <b>Login</b> for <b>${pwd}</b> to clipboard.\n\n"
+    _notifyme "$mesg"
 }
 
 # retrieves and copies/types otp code
@@ -353,6 +396,7 @@ function _action {
     edit) _pwd_edit "$pwd" ;;
     copy) _pwd_copy "$pwd" ;;
     otp) _pwd_otp_code "$pwd" ;;
+    login) _pwd_login "$pwd" ;;
     typed) _pwd_type "$pwd" ;;
     show) _pwd_show "$pwd" ;;
     favorite) _fav_add "$pwd" ;;
@@ -372,6 +416,7 @@ function _select_action {
     options+=("${ICONS[copy]} copy")
     options+=("${ICONS[edit]} edit")
     options+=("${ICONS[otp]} otp")
+    options+=("${ICONS[login]} login")
     options+=("${ICONS[show]} show")
     options+=("${ICONS[typed]} typed")
     if _has_line "$pwd" "$FAVORITES"; then
@@ -438,7 +483,7 @@ function _fav_pwd {
 function _menu {
     local pwd
     local prompt="${ICONS[prompt]} PassMenu> "
-    if [[ -n "$1" ]]; then
+    if [[ -n "${1:-}" ]]; then
         pwd=$(_pwd_get_path "$1")
         [[ -z "${pwd}" ]] && _logerr "password '$1' not found"
     else
@@ -464,7 +509,7 @@ function main {
 
     if _in_terminal && _has fzf; then
         MENU=fzf
-        MENU_OPTS+=(--tmux "center,50%")
+        ((PASSMENU_TMUX)) && MENU_OPTS+=(--tmux "center,50%")
     elif _has dmenu; then
         MENU=dmenu
         MENU_OPTS+=(-l 10)
@@ -475,9 +520,20 @@ function main {
     fi
 
     case "${1:-}" in
-    -m | --menu)
-        _menu "$1"
+    --dmenu)
+        shift
+        MENU=dmenu
+        MENU_OPTS+=(-l 10)
         ;;
+    --rofi)
+        shift
+        MENU=rofi
+        MENU_OPTS+=(-dmenu)
+        MENU_OPTS+=(-l 10)
+        ;;
+    esac
+
+    case "${1:-}" in
     -a | --add | add)
         _add_pwd
         ;;
