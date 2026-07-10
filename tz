@@ -76,12 +76,18 @@ ICONS[pointer]=""
 FZFARGS=(--tmux --no-preview --pointer="${ICONS[pointer]}" --color=header:italic:gray --reverse)
 FZFARGS+=(--tac --info=inline-right --layout=default --color=prompt:bold)
 FZFARGS+=(--border-label=" tmuxp " --border)
-FZFARGS+=(--ansi)
+FZFARGS+=(--ansi --cycle)
 
 declare -a ACTIONS
 declare -a FILTERED_FILENAMES=()
-mapfile -t FILENAMES < <(find "$ROOT/" -type f -name "*.yaml" -exec basename {} .yaml \;)
+# mapfile -t FILENAMES < <(find "$ROOT/" -type f -name "*.yaml" -exec basename {} .yaml \;)
+cd "$ROOT" || exit 1
+mapfile -t FILENAMES < <(grep -h '^session_name:' -- *.yaml* | awk '{print $2}')
 mapfile -t sessions_running < <(tmux list-sessions 2>/dev/null | awk -F':' '{print $1}')
+
+SESSION_LEN="${#FILENAMES[@]}"
+((SESSION_LEN == 0)) && exit 130
+
 for i in "${!FILENAMES[@]}"; do
     if [[ " ${sessions_running[*]} " =~ ${FILENAMES[i]} ]]; then
         icon_running="${YELLOW}${ICONS[running]}${RESET}"
